@@ -54,12 +54,19 @@
         content.textContent=''
         //open ws here
         closeWs();
-        webSocketConnection=new WebSocket('ws://'+window.location.host+"/api/ws");
-        webSocketConnection.onmessage=function(message){
-            content.textContent+="\n"+message.data;
-        }
-        webSocketConnection.onopen=function(){
-            webSocketConnection.send("Hello!");
+        try{
+            webSocketConnection=new WebSocket('ws://'+window.location.host+"/api/ws");
+            webSocketConnection.onmessage=function(message){
+                content.textContent+="\n"+message.data;
+            }
+            webSocketConnection.onopen=function(){
+                webSocketConnection.send("Hello!");
+            }
+            webSocketConnection.onerror=function(err){
+                alert("websocket error: "+err.currentTarget.url);
+            }
+        }catch (e){
+            alert("unable to open websocket: "+e);
         }
     }
 

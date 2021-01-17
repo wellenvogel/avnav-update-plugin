@@ -116,7 +116,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       return
     if request == 'updateList' or request == 'updatePackages' or request == 'restart':
       logging.info("run command %s",request)
-      #run command
+      self.server.startAction(request)
       self.sendJsonResponse(self.getReturnData(info="started"))
       return
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
