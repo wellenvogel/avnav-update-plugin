@@ -1,4 +1,5 @@
 (function(){
+    let webSocketConnection;
     let apiRequest=function(command){
         let url="/api/"+command;
         return new Promise(function(resolve,reject){
@@ -36,6 +37,15 @@
             })
     }
 
+    let closeWs=function(){
+        if (webSocketConnection){
+            try{
+                webSocketConnection.close();
+                webSocketConnection=undefined;
+            }catch(e){console.log("error closing ws: "+e);}
+        }
+    }
+
     let showConsole=function(){
         let overlay=document.getElementById('responseOverlay');
         if (! overlay) return;
@@ -43,12 +53,21 @@
         let content=overlay.querySelector('.overlayContent');
         content.textContent=''
         //open ws here
+        closeWs();
+        webSocketConnection=new WebSocket('ws://'+window.location.host+"/api/ws");
+        webSocketConnection.onmessage=function(message){
+            content.textContent+="\n"+message.data;
+        }
+        webSocketConnection.onopen=function(){
+            webSocketConnection.send("Hello!");
+        }
     }
 
     window.addEventListener('load',function(){
         let cb=document.getElementById('closeOverlay');
         if (cb){
             cb.addEventListener('click',function(){
+                closeWs();
                 let ov=document.getElementById('responseOverlay');
                 if (ov) ov.style.visibility='hidden';
             })

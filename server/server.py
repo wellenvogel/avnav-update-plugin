@@ -30,6 +30,21 @@ import socketserver
 import sys
 
 from handler import Handler
+from websocket import HTTPWebSocketsHandler
+
+class WSSimpleEcho(HTTPWebSocketsHandler,Handler):
+  def on_ws_message(self, message):
+    if message is None:
+      message = ''
+    # echo message back to client
+    self.send_message(str(message))
+    self.log_message('websocket received "%s"', str(message))
+
+  def on_ws_connected(self):
+    self.log_message('%s', 'websocket connected')
+
+  def on_ws_closed(self):
+    self.log_message('%s', 'websocket closed')
 
 
 class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer,Handler):
@@ -41,7 +56,7 @@ def usage():
 
 if __name__ == '__main__':
   try:
-    optlist,args=getopt.getopt(sys.argv[1:],'p:l:')
+    optlist,args=getopt.getopt(sys.argv[1:],'p:l:d')
   except getopt.GetoptError as err:
     print(err)
     usage()
@@ -76,5 +91,5 @@ if __name__ == '__main__':
   logging.basicConfig(handlers=[handler], level=loglevel, format='%(asctime)s-%(process)d: %(message)s')
   logging.info("AvNav updater started at port %d"%port)
 
-  server=OurHTTPServer(('0.0.0.0',port),Handler)
+  server=OurHTTPServer(('0.0.0.0',port),WSSimpleEcho)
   server.serve_forever()
