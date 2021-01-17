@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="AvNavUpdate">
+    <link rel="stylesheet" href="index.css">
+    <script type="text/javascript" src="index.js"></script>
+
+    <title>AvNavUpdate</title>
+  </head>
+  <body>
+    <noscript>
+      Diese Seite funktioniert nur mit java script.
+    </noscript>
+    <div id="root">
+      <div class="infoFrame" id="infoFrame">        
+      </div>
+      <div class="buttonFrame">
+        <button id="refresh" data-action="reload">Reload</button>
+        <button id="updateList" data-action="updateList">Update List</button>
+        <button id="updatePackages" data-action="updatePackages">Update Packages</button>
+        <button id="restart" data-action="restart">Restart AvNav</button>
+      </div>
+  </div>
+  <div class="overlayFrame" id="responseOverlay">
+    <div class="overlay">
+      <div class="overlayContent">
+
+      </div>
+      <div class="overlayButtons">
+        <button id="closeOverlay">Close</button>
+      </div>
+    </div>
+  </div>
+  </body>
+</html>
