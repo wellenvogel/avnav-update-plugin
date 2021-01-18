@@ -26,10 +26,33 @@
         listFrame.innerHTML='';
         apiRequest('fetchList')
             .then(function(data){
-                data.list.forEach(function(le){
-                    let d=document.createElement('div');
+                let fields=['name','state','version'];
+                let d=document.createElement('tr');
+                d.classList.add('listHeadline');
+                fields.concat(['include']).forEach(function(f){
+                    let e=document.createElement('th');
+                    e.classList.add(f+"Hdg");
+                    e.textContent=f;
+                    d.appendChild(e);
+                });
+                listFrame.append(d)    
+                data.data.forEach(function(le){
+                    d=document.createElement('tr');
                     d.classList.add('listElement');
-                    d.textContent=le;
+                    fields.forEach(function(f){
+                        let e=document.createElement('td');
+                        e.classList.add(f);
+                        e.textContent=le[f];
+                        d.appendChild(e);
+                    });
+                    let td=document.createElement('td');
+                    e=document.createElement('input');
+                    e.setAttribute('type','checkbox');
+                    e.setAttribute('data-name',le.name);
+                    e.checked=true;
+                    td.appendChild(e);
+                    d.appendChild(td);
+                    listFrame.appendChild(d);
                 })
             })
             .catch(function(error){
@@ -99,14 +122,16 @@
                 bel.addEventListener('click',function(ev){
                     let action=ev.target.getAttribute('data-action');
                     if (!action) return;
+                    if (action === 'reload'){
+                        fetchList();
+                        return;
+                    }
                     if (action === 'updateList' || action === 'updatePackages' || action == 'restart'){
                         showConsole();
                     }
                     apiRequest(action)
                         .then(function(response){
-                            if (action === 'reload'){
-                                fetchList();
-                            }
+                            fetchList();
                         })
                         .catch(function(error){
                             showConsole("Error: "+error);
@@ -149,5 +174,6 @@
                 console.log(error);
             })
         },1000);
+        fetchList();
     })
 })();

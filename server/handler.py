@@ -130,6 +130,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.sendJsonResponse(self.getReturnData("another action is running"))
       return
 
+    if request == 'fetchList':
+      data=self.server.fetchPackageList()
+      self.sendJsonResponse(self.getReturnData(data=data))
+      return
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
 
 

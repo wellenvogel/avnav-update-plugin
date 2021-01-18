@@ -34,6 +34,7 @@ import traceback
 
 from handler import Handler
 from websocket import HTTPWebSocketsHandler
+from packagelist import PackageList
 
 
 
@@ -69,6 +70,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.actionRunning=False
     self.currentAction=None
     self.lock=threading.Lock()
+    self.packageList=PackageList('avnav')
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -112,6 +114,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.sendToClients("action %s done" % (command))
     self.actionRunning=False
 
+  def fetchPackageList(self):
+    return self.packageList.fetchPackages()
 
 
 def usage():
