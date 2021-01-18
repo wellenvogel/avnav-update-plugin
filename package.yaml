@@ -1,0 +1,27 @@
+# nfpm example config file
+#
+# check https://nfpm.goreleaser.com/configuration for detailed usage
+#
+name: "avnav-update-plugin"
+arch: "all"
+platform: "linux"
+version: "20210116"
+keep_version: true
+section: "default"
+priority: "extra"
+depends:
+- avnav
+maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
+description: |
+  AvNav plugin to handle updates of avnav
+homepage: "https://example.com"
+license: "MIT"
+contents:
+- src: ./plugin.*
+  dst: /usr/lib/avnav/plugins/update/
+- src: ./gui/*
+  dst: /usr/lib/avnav/plugins/update/gui
+#- src: ./icons/*
+#  dst: /usr/lib/avnav/plugins/update/icons
+- src: ./server/*py
+  dst: /usr/lib/avnav/plugins/update/server  
