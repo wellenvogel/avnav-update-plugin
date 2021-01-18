@@ -82,6 +82,7 @@ button {
     overflow-y: auto;
     overflow-x: hidden;
     word-break: break-all;
+    white-space: pre;
 }
 .overlayButtons {
     display: flex;

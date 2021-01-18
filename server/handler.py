@@ -114,10 +114,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     if request == 'ping':
       self.sendJsonResponse(self.getReturnData())
       return
+    if request == 'status':
+      self.sendJsonResponse(self.getReturnData(actionRunning=self.server.actionRunning))
     if request == 'updateList' or request == 'updatePackages' or request == 'restart':
       logging.info("run command %s",request)
-      self.server.startAction(request)
-      self.sendJsonResponse(self.getReturnData(info="started"))
+      success=self.server.startAction(request)
+      if success:
+        self.sendJsonResponse(self.getReturnData(info="started"))
+      else:
+        self.sendJsonResponse(self.getReturnData("another action is running"))
       return
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
 

@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 import socket  # for socket exceptions
 import struct
 import threading
+import time
 from base64 import b64encode
 from hashlib import sha1
 from http.server import SimpleHTTPRequestHandler
@@ -19,6 +20,43 @@ from http.server import SimpleHTTPRequestHandler
 
 class WebSocketError(Exception):
   pass
+
+class OutQueue:
+  def __init__(self,size):
+    self.condition=threading.Condition()
+    self.data=[]
+    self.size=size
+
+  def clear(self):
+    self.condition.acquire()
+    self.data=[]
+    self.condition.notifyAll()
+    self.condition.release()
+  def add(self,item):
+    self.condition.acquire()
+    try:
+      self.data.append(item)
+      self.condition.notifyAll()
+      if len(self.data) > self.size:
+        self.data.pop(0)
+    finally:
+      self.condition.release()
+
+  def read(self,timeout=1):
+    now=time.time()
+    loopCount=timeout*5
+    while loopCount > 0:
+      self.condition.acquire()
+      try:
+        if len(self.data) > 0:
+          return self.data.pop(0)
+        self.condition.wait(0.2)
+        loopCount=loopCount-1
+      finally:
+        self.condition.release()
+    return None
+
+
 
 
 class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
@@ -30,7 +68,6 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
   _opcode_ping = 0x9
   _opcode_pong = 0xa
 
-  mutex = threading.Lock()
 
   def on_ws_message(self, message):
     """Override this handler to process incoming websocket messages."""
@@ -45,11 +82,19 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
     pass
 
   def send_message(self, message):
-    self._send_message(self._opcode_text, message)
+    self.queue.add(message)
+
+  def _fetch_messages(self):
+    while self.connected:
+      message=self.queue.read()
+      if message != None:
+        self._send_message(self._opcode_text, message)
 
   def setup(self):
     SimpleHTTPRequestHandler.setup(self)
     self.connected = False
+    self.queue=OutQueue(20)
+    self.mutex = threading.Lock()
 
   # def finish(self):
   # #needed when wfile is used, or when self.close_connection is not used
@@ -92,6 +137,9 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
       super().do_GET()
 
   def _read_messages(self):
+    sender=threading.Thread(target=self._fetch_messages)
+    sender.setDaemon(True)
+    sender.start()
     while self.connected == True:
       try:
         self._read_next_message()

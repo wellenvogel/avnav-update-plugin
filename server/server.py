@@ -34,49 +34,6 @@ import time
 from handler import Handler
 from websocket import HTTPWebSocketsHandler
 
-class SimpleQueue:
-  def __init__(self,size):
-    self.condition=threading.Condition()
-    self.data=[]
-    self.size=size
-    self.sequence=0
-
-  def clear(self):
-    self.condition.acquire()
-    self.data=[]
-    self.condition.notifyAll()
-    self.condition.release()
-  def add(self,item):
-    self.condition.acquire()
-    try:
-      self.sequence+=1
-      self.data.append((self.sequence,item))
-      self.condition.notifyAll()
-      if len(self.data) > self.size:
-        self.data.pop(0)
-    finally:
-      self.condition.release()
-
-  def read(self,lastSeq,timeout=1):
-    rt=None
-    loopCount=timeout*10
-    while loopCount > 0:
-      try:
-        self.condition.acquire()
-        for idx in range(len(self.data)-1,-1,-1):
-          le=self.data[idx]
-          if le[0] <= lastSeq:
-            break
-          rt=le
-        if rt is not None:
-          return rt
-        self.condition.wait(0.1)
-        loopCount=loopCount-1
-      finally:
-        self.condition.release()
-    return None,None
-
-
 
 
 
@@ -97,22 +54,9 @@ class WSSimpleEcho(HTTPWebSocketsHandler,Handler):
   def on_ws_connected(self):
     self.server.addClient(self)
     self.log_message('%s', 'websocket connected')
-    self.thread=threading.Thread(target=self.fetch)
-    self.thread.setDaemon(True)
-    self.stop=False
-    self.thread.start()
-
-  def fetch(self):
-    sequence = 0
-    while not self.stop:
-      nsequence,message=self.server.queue.read(sequence,0.5)
-      if nsequence is not None:
-        self.send_message(message)
-        sequence=nsequence
 
   def on_ws_closed(self):
     self.server.removeClient(self)
-    self.stop=True
     self.log_message('%s', 'websocket closed')
 
 
@@ -120,7 +64,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer,Handler):
   def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
     http.server.HTTPServer.__init__(self,server_address,RequestHandlerClass,bind_and_activate)
     self.wsClients={}
-    self.queue=SimpleQueue(100)
+    self.actionRunning=False
+    self.lock=threading.Lock()
 
   def addClient(self,client):
     self.wsClients[client]=client
@@ -131,19 +76,34 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer,Handler):
     except:
       pass
 
+  def sendToClients(self,message):
+    for c in list(self.wsClients.values()):
+      try:
+        c.send_message(message)
+      except Exception as e:
+        logging.debug("error sending to wsclient: %s",str(e))
   def startAction(self,action):
-    self.queue.clear()
+    self.lock.acquire()
+    try:
+      if self.actionRunning:
+        return False
+      self.actionRunning=True
+    finally:
+      self.lock.release()
     t=threading.Thread(target=self.actionRun,args=[action])
     t.setDaemon(True)
     t.start()
+    return True
 
   def actionRun(self,command):
     count=30
     while count > 0:
-      self.queue.add("action %s %d"%(command,count))
+      self.sendToClients("action %s %d"%(command,count))
       time.sleep(1)
       count=count-1
-    self.queue.add("action %s done" % (command))
+    self.sendToClients("action %s done" % (command))
+    self.actionRunning=False
+
 
 
 def usage():

@@ -46,14 +46,18 @@
         }
     }
 
-    let showConsole=function(){
+    let showConsole=function(opt_text){
         let overlay=document.getElementById('responseOverlay');
         if (! overlay) return;
         overlay.style.visibility='unset';
         let content=overlay.querySelector('.overlayContent');
+        closeWs();
+        if (opt_text){
+            content.textContent=opt_text;
+            return;
+        }
         content.textContent=''
         //open ws here
-        closeWs();
         try{
             webSocketConnection=new WebSocket('ws://'+window.location.host+"/api/ws");
             webSocketConnection.onmessage=function(message){
@@ -69,6 +73,7 @@
             alert("unable to open websocket: "+e);
         }
     }
+
 
     window.addEventListener('load',function(){
         let cb=document.getElementById('closeOverlay');
@@ -86,20 +91,35 @@
                 bel.addEventListener('click',function(ev){
                     let action=ev.target.getAttribute('data-action');
                     if (!action) return;
+                    if (action === 'updateList' || action === 'updatePackages' || action == 'restart'){
+                        showConsole();
+                    }
                     apiRequest(action)
                         .then(function(response){
                             if (action === 'reload'){
                                 fetchList();
                             }
-                            if (action === 'updateList' || action === 'updatePackages'){
-                                showConsole();
-                            }
                         })
                         .catch(function(error){
-                            alert("Error: "+error);
+                            showConsole("Error: "+error);
                         })
                 })
             }
         })
+        this.window.setInterval(function(){
+            apiRequest('status')
+            .then(function(data){
+                let buttons=document.querySelectorAll('.buttonFrame button');
+                for (let i=0;i<buttons.length;i++){
+                    if (data.actionRunning){
+                        buttons[i].setAttribute('disabled','');
+                    }
+                    else{
+                        buttons[i].removeAttribute('disabled');
+                    }
+                }
+            })
+            .catch(function(error){})
+        },1000);
     })
 })();
