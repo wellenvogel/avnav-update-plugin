@@ -125,6 +125,7 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
       return False
     return True
 
+
   def do_GET(self):
     #if self.server.auth and not self.checkAuthentication():
     #  return

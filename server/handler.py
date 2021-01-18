@@ -95,11 +95,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
   def sendJsonResponse(self,data):
     r=json.dumps(data).encode('utf-8')
     self.send_response(200)
-    self.send_header("Content-type", "application/json")
+    self.send_header("Content-Type", "application/json")
     self.send_header("Content-Length", str(len(r)))
     self.send_header("Last-Modified", self.date_time_string())
     self.end_headers()
     self.wfile.write(r)
+
 
 
   def do_GET(self):
@@ -115,7 +116,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       self.sendJsonResponse(self.getReturnData())
       return
     if request == 'status':
-      self.sendJsonResponse(self.getReturnData(actionRunning=self.server.actionRunning))
+      self.sendJsonResponse(self.getReturnData(
+        actionRunning=self.server.actionRunning,
+        currentAction=self.server.currentAction
+      ))
+      return
     if request == 'updateList' or request == 'updatePackages' or request == 'restart':
       logging.info("run command %s",request)
       success=self.server.startAction(request)
@@ -124,6 +129,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       else:
         self.sendJsonResponse(self.getReturnData("another action is running"))
       return
+
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
 
 

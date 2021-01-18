@@ -23,6 +23,13 @@
         <button id="updateList" data-action="updateList">Update List</button>
         <button id="updatePackages" data-action="updatePackages">Update Packages</button>
         <button id="restart" data-action="restart">Restart AvNav</button>
+        <div class="currentAction">
+            <span class="label">Running Action</span>
+            <div id="runningAction">
+              <span class="actionName blink"></span>
+              <button id="showConsole">Console</button>
+            </div>
+          </div>
       </div>
   </div>
   <div class="overlayFrame" id="responseOverlay">

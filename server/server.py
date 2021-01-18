@@ -30,6 +30,7 @@ import socketserver
 import sys
 import threading
 import time
+import traceback
 
 from handler import Handler
 from websocket import HTTPWebSocketsHandler
@@ -49,6 +50,7 @@ class WSSimpleEcho(HTTPWebSocketsHandler,Handler):
   def do_GET(self):
     if not self.path.startswith('/api/ws'):
       Handler.do_GET(self)
+      return
     HTTPWebSocketsHandler.do_GET(self)
 
   def on_ws_connected(self):
@@ -60,12 +62,17 @@ class WSSimpleEcho(HTTPWebSocketsHandler,Handler):
     self.log_message('%s', 'websocket closed')
 
 
-class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer,Handler):
+class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
   def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
     http.server.HTTPServer.__init__(self,server_address,RequestHandlerClass,bind_and_activate)
     self.wsClients={}
     self.actionRunning=False
+    self.currentAction=None
     self.lock=threading.Lock()
+
+  def handle_error(self, request, client_address):
+    estr=traceback.format_exc()
+    logging.error("error in http request from %s: %s",str(client_address),estr)
 
   def addClient(self,client):
     self.wsClients[client]=client
@@ -90,6 +97,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer,Handler):
       self.actionRunning=True
     finally:
       self.lock.release()
+    self.currentAction=action
     t=threading.Thread(target=self.actionRun,args=[action])
     t.setDaemon(True)
     t.start()

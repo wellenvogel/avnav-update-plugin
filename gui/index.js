@@ -45,13 +45,19 @@
             }catch(e){console.log("error closing ws: "+e);}
         }
     }
-
+    let showHideShowCb=function(show){
+        let b=document.getElementById('showConsole');
+        if (!b) return;
+        if (show) b.style.visibility='inherit';
+        else b.style.visibility='hidden';
+    }
     let showConsole=function(opt_text){
         let overlay=document.getElementById('responseOverlay');
         if (! overlay) return;
         overlay.style.visibility='unset';
         let content=overlay.querySelector('.overlayContent');
         closeWs();
+        showHideShowCb(false);
         if (opt_text){
             content.textContent=opt_text;
             return;
@@ -62,9 +68,10 @@
             webSocketConnection=new WebSocket('ws://'+window.location.host+"/api/ws");
             webSocketConnection.onmessage=function(message){
                 content.textContent+="\n"+message.data;
+                content.scrollTop=content.scrollHeight;
             }
             webSocketConnection.onopen=function(){
-                webSocketConnection.send("Hello!");
+                
             }
             webSocketConnection.onerror=function(err){
                 alert("websocket error: "+err.currentTarget.url);
@@ -82,6 +89,7 @@
                 closeWs();
                 let ov=document.getElementById('responseOverlay');
                 if (ov) ov.style.visibility='hidden';
+                showHideShowCb(true);
             })
         }
         let actionButtons=['refresh','updateList','updatePackages','restart'];
@@ -106,11 +114,16 @@
                 })
             }
         })
+        let showCb=this.document.getElementById('showConsole');
+        if (showCb){
+            showCb.addEventListener('click',function(){showConsole();});
+        }
         this.window.setInterval(function(){
             apiRequest('status')
             .then(function(data){
                 let buttons=document.querySelectorAll('.buttonFrame button');
                 for (let i=0;i<buttons.length;i++){
+                    if (!buttons[i].getAttribute('data-action')) continue;
                     if (data.actionRunning){
                         buttons[i].setAttribute('disabled','');
                     }
@@ -118,8 +131,23 @@
                         buttons[i].removeAttribute('disabled');
                     }
                 }
+                let actionDisplay=document.getElementById('runningAction');
+                if (actionDisplay){
+                    if (data.actionRunning){
+                        actionDisplay.classList=['running'];
+                        let txt=actionDisplay.querySelector('.actionName');
+                        if (txt){
+                            txt.textContent=data.currentAction;
+                        }
+                    }
+                    else{
+                        actionDisplay.classList=['stopped'];
+                    }
+                }
             })
-            .catch(function(error){})
+            .catch(function(error){
+                console.log(error);
+            })
         },1000);
     })
 })();

@@ -18,6 +18,12 @@ body{
 text {
     font-family: Verdana, Arial, sans-serif;
 }
+
+.blink {
+    animation: blinker 1.7s cubic-bezier(.5, 0, 1, 1) infinite alternate;  
+  }
+@keyframes blinker { to { opacity: 0; } }
+
 #root {
     display: flex;
     flex-direction: row;
@@ -48,6 +54,30 @@ button {
     background-position: center;
     height: 3em;
     border-width: 1px;
+}
+
+
+.currentAction {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 1em;
+    border-top: 1px solid grey;
+}
+
+#runningAction.stopped {
+    visibility: hidden;
+}
+.actionName {
+    display: block;
+    margin: 0.3em;
+    color: red;
+}
+.currentAction .label {
+    display: block;
+    margin: 0.3em;
+    font-size: 0.8em;
+    opacity: 0.6;
 }
 
 .overlayFrame{
@@ -97,6 +127,15 @@ button {
     .buttonFrame{
         flex-direction: row;
         flex-wrap: wrap;
+    }
+    .currentAction{
+        flex-direction: row;
+        margin-top: unset;
+        border-top: unset;
+        align-items: center;
+    }
+    .actionName{
+        display: inline-block;
     }
 
 }
