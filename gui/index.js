@@ -26,7 +26,7 @@
         listFrame.innerHTML='';
         apiRequest('fetchList')
             .then(function(data){
-                let fields=['name','state','version'];
+                let fields=['name','state','version','candidate'];
                 let d=document.createElement('tr');
                 d.classList.add('listHeadline');
                 fields.concat(['include']).forEach(function(f){
@@ -49,7 +49,7 @@
                     e=document.createElement('input');
                     e.setAttribute('type','checkbox');
                     e.setAttribute('data-name',le.name);
-                    e.checked=true;
+                    e.checked=!!le.candidate;
                     td.appendChild(e);
                     d.appendChild(td);
                     listFrame.appendChild(d);

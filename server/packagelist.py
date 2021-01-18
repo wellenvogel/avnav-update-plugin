@@ -49,9 +49,14 @@ class PackageList:
     apt_pkg.init_config()
     apt_pkg.init_system()
     cache = apt_pkg.Cache()
+    depcache =apt_pkg.DepCache(cache)
     rt=[]
     for pkg in cache.packages:
       if pkg.name.startswith(self.prefix):
-        nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=pkg.current_ver.ver_str)
+        cand = depcache.get_candidate_ver(pkg)
+        candVersion=None
+        if cand and cand.ver_str != pkg.current_ver.ver_str:
+          candVersion=cand.ver_str
+        nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=pkg.current_ver.ver_str,candidate=candVersion)
         rt.append(nv.dict())
     return rt
