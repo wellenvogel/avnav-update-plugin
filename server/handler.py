@@ -122,7 +122,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         actionRunning=self.server.hasRunningAction(),
         currentAction=self.server.currentAction,
         avnavRunning=self.server.getAvNavStatus(),
-        updateSequence=self.server.getUpdateSequence()
+        updateSequence=self.server.getUpdateSequence(),
+        network=self.server.networkAvailable()
       ))
       return
     if request in Commands.KNOWN_ACTIONS:

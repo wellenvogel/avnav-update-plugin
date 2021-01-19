@@ -35,6 +35,7 @@ import traceback
 
 from commands import Commands
 from handler import Handler
+from network import NetworkChecker
 from systemd import Systemd
 from websocket import HTTPWebSocketsHandler
 from packagelist import PackageList
@@ -84,6 +85,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.lastAvNavState=None
     self.avNavState=AvNavState.UNCONFIGURED
     self.commandHandler=Commands(self._logCommand)
+    self.networkChecker=NetworkChecker('www.google.de',checkInterval=20)
+    self.networkChecker.available()
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -130,6 +133,10 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
 
   def fetchPackageList(self):
     return self.packageList.fetchPackages()
+
+  def networkAvailable(self):
+    return self.networkChecker.available()
+
 
   def getAvNavStatus(self):
     now=time.time()
