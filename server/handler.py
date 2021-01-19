@@ -119,9 +119,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       return
     if request == 'status':
       self.sendJsonResponse(self.getReturnData(
-        actionRunning=self.server.actionRunning,
+        actionRunning=self.server.hasRunningAction(),
         currentAction=self.server.currentAction,
-        avnavRunning=self.server.getAvNavStatus()
+        avnavRunning=self.server.getAvNavStatus(),
+        updateSequence=self.server.getUpdateSequence()
       ))
       return
     if request in Commands.KNOWN_ACTIONS:

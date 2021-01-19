@@ -36,6 +36,7 @@ class Commands:
     self.finishCallback=finishCallback
     self.commandList=[]
     self.currentIndex=0
+    self.updateSequence=0
 
   UPDATE_PRE=[
     ['sudo','-n','systemctl','stop','avnav'],
@@ -58,11 +59,13 @@ class Commands:
       'restart':[['sudo','-n','systemctl','restart','avnav']],
       'updatePackages':[]
        }
-
+  UPDATE_ACTIONS=['updateList','updatePackages']
   def runAction(self,action,parameters=None):
     commands=self.KNOWN_ACTIONS.get(action)
     if commands is None:
       return False
+    if self.hasRunningCommand():
+      raise Exception("command already running")
     if action == 'updatePackages':
       for p in parameters:
         if not p.startswith(self.ALLOWED_PREFIX):
@@ -75,9 +78,10 @@ class Commands:
     else:
       self.commandList=commands
     self.currentIndex=0
+    updateSequence=action in self.UPDATE_ACTIONS
     rt=self._runCommand()
     if rt:
-      checker = threading.Thread(target=self._autoCheck)
+      checker = threading.Thread(target=self._autoCheck,args=[updateSequence])
       checker.setDaemon(True)
       checker.start()
       return True
@@ -106,12 +110,14 @@ class Commands:
       stderrReader.start()
     return True
 
-  def _autoCheck(self):
+  def _autoCheck(self,updateSequence=False):
     while True:
       if not self.hasRunningCommand():
         return
       rt=self.checkRunning()
       if rt is not None:
+        if updateSequence:
+          self.updateSequence+=1
         return
       time.sleep(0.2)
 
@@ -120,17 +126,23 @@ class Commands:
       line=self.runningCommand.stdout.readline()
       if len(line) == 0:
         break
-      self.stdoutLogger(line)
+      self.stdoutLogger(line.rstrip())
 
   def _readStderr(self):
     while True:
       line = self.runningCommand.stderr.readline()
       if len(line) == 0:
         break
-      self.stdoutLogger(line)
+      self.stdoutLogger(line.rstrip())
+
+  def getUpdateSequence(self):
+    return self.updateSequence
 
   def hasRunningCommand(self):
-    return self.runningCommand is not None
+    running=self.runningCommand
+    if running is None:
+      return False
+    return running.returncode is None
 
   def _checkNextCommand(self):
     if self.currentIndex >= (len(self.commandList) -1):
@@ -139,12 +151,13 @@ class Commands:
     return self._runCommand(True)
 
   def checkRunning(self):
-    if not self.runningCommand:
+    if not self.hasRunningCommand():
       return
     rt=self.runningCommand.poll()
     if rt is None:
       return
     self.stdoutLogger("command finished with return code %d" % rt)
+    self.stdoutLogger("")
     if rt == 0 or rt != 0:
       next=self._checkNextCommand()
       if next:

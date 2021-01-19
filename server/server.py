@@ -83,7 +83,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.systemd=Systemd()
     self.lastAvNavState=None
     self.avNavState=AvNavState.UNCONFIGURED
-    self.commandHandler=Commands(self._logCommand,finishCallback=self._commandDone)
+    self.commandHandler=Commands(self._logCommand)
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -109,26 +109,24 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       except Exception as e:
         logging.debug("error sending to wsclient: %s",str(e))
   def startAction(self,action,parameters=None):
-    self.lock.acquire()
-    try:
-      if self.actionRunning:
-        return False
-      self.actionRunning=True
-    finally:
-      self.lock.release()
-    self.currentAction=action
     if action in self.commandHandler.KNOWN_ACTIONS:
+      self.lock.acquire()
       try:
-        self.commandHandler.runAction(action,parameters)
+        if self.commandHandler.hasRunningCommand():
+          return False
+        self.commandHandler.runAction(action, parameters)
       except Exception as e:
-        logging.error("unable to start action %s: %s"%(action,str(e)))
-        self.actionRunning=False
+        logging.error("unable to start action %s: %s" % (action, str(e)))
         raise
+      finally:
+        self.lock.release()
+      self.currentAction=action
       return True
 
-
-  def _commandDone(self,rt):
-    self.actionRunning=False
+  def getUpdateSequence(self):
+    return self.commandHandler.getUpdateSequence()
+  def hasRunningAction(self):
+    return self.commandHandler.hasRunningCommand()
 
   def fetchPackageList(self):
     return self.packageList.fetchPackages()

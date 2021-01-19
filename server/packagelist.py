@@ -55,8 +55,9 @@ class PackageList:
       if pkg.name.startswith(self.prefix):
         cand = depcache.get_candidate_ver(pkg)
         candVersion=None
-        if cand and cand.ver_str != pkg.current_ver.ver_str:
+        current=pkg.current_ver.ver_str if pkg.current_ver else ''
+        if cand and cand.ver_str != current:
           candVersion=cand.ver_str
-        nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=pkg.current_ver.ver_str,candidate=candVersion)
+        nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=current,candidate=candVersion)
         rt.append(nv.dict())
     return rt

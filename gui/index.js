@@ -1,5 +1,6 @@
 (function(){
     let webSocketConnection;
+    let lastUpdateSequence;
     let apiRequest=function(command){
         let url="/api/"+command;
         return new Promise(function(resolve,reject){
@@ -23,9 +24,10 @@
     let fetchList=function(){
         let listFrame=document.getElementById('infoFrame');
         if (! listFrame) return;
-        listFrame.innerHTML='';
+        listFrame.innerHTML='<div class="updateRunning blink">Reading Packages...</div>';
         apiRequest('fetchList')
             .then(function(data){
+                listFrame.innerHTML='';
                 let fields=['name','state','version','candidate'];
                 let d=document.createElement('tr');
                 d.classList.add('listHeadline');
@@ -152,7 +154,7 @@
                     }
                     apiRequest(action)
                         .then(function(response){
-                            fetchList();
+                            
                         })
                         .catch(function(error){
                             showConsole("Error: "+error);
@@ -194,6 +196,10 @@
                 if (statusText){
                     statusText.textContent=statusToText(data.avnavRunning);
                     statusText.setAttribute('data-status',data.avnavRunning);
+                }
+                if (lastUpdateSequence !== data.updateSequence){
+                    lastUpdateSequence=data.updateSequence;
+                    fetchList();
                 }
             })
             .catch(function(error){
