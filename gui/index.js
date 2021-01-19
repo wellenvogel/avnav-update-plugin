@@ -104,7 +104,11 @@
         }
     }
 
-
+    let statusToText=function(status){
+        if (status === 1) return "running";
+        if (status === 2) return "stopped";
+        if (status === 3) return "not installed";
+    }
     window.addEventListener('load',function(){
         let cb=document.getElementById('closeOverlay');
         if (cb){
@@ -168,6 +172,11 @@
                     else{
                         actionDisplay.classList=['stopped'];
                     }
+                }
+                let statusText=document.getElementById('avnavStatusText');
+                if (statusText){
+                    statusText.textContent=statusToText(data.avnavRunning);
+                    statusText.setAttribute('data-status',data.avnavRunning);
                 }
             })
             .catch(function(error){

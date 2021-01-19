@@ -118,7 +118,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     if request == 'status':
       self.sendJsonResponse(self.getReturnData(
         actionRunning=self.server.actionRunning,
-        currentAction=self.server.currentAction
+        currentAction=self.server.currentAction,
+        avnavRunning=self.server.getAvNavStatus()
       ))
       return
     if request == 'updateList' or request == 'updatePackages' or request == 'restart':

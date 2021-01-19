@@ -12,6 +12,7 @@ priority: "extra"
 depends:
 - avnav
 - python3-apt
+- python3-dbus
 maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
 description: |
   AvNav plugin to handle updates of avnav

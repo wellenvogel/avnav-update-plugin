@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: ts=2 sw=2 et ai
 ###############################################################################
@@ -33,6 +34,7 @@ import time
 import traceback
 
 from handler import Handler
+from systemd import Systemd
 from websocket import HTTPWebSocketsHandler
 from packagelist import PackageList
 
@@ -62,6 +64,12 @@ class WSSimpleEcho(HTTPWebSocketsHandler,Handler):
     self.server.removeClient(self)
     self.log_message('%s', 'websocket closed')
 
+AVNAV_UNIT="avnav.service"
+
+class AvNavState:
+  RUNNING=1
+  STOPPED=2
+  UNCONFIGURED=3
 
 class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
   def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
@@ -71,6 +79,9 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.currentAction=None
     self.lock=threading.Lock()
     self.packageList=PackageList('avnav')
+    self.systemd=Systemd()
+    self.lastAvNavState=None
+    self.avNavState=AvNavState.UNCONFIGURED
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -117,6 +128,19 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
   def fetchPackageList(self):
     return self.packageList.fetchPackages()
 
+  def getAvNavStatus(self):
+    now=time.time()
+    if self.lastAvNavState is None or ( self.lastAvNavState + 2 ) < now or self.lastAvNavState > now:
+      rt=AvNavState.UNCONFIGURED
+      states=self.systemd.getUnitInfo([AVNAV_UNIT])
+      if len (states) >= 1:
+        if states[0][1] == 'running':
+          rt= AvNavState.RUNNING
+        else:
+          rt= AvNavState.STOPPED
+      self.lastAvNavState=now
+      self.avNavState=rt
+    return self.avNavState
 
 def usage():
   print("usage: %s -p port [-l logdir]" % (sys.argv[0]))
