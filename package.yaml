@@ -13,6 +13,7 @@ depends:
 - avnav
 - python3-apt
 - python3-dbus
+- ntpdate
 maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
 description: |
   AvNav plugin to handle updates of avnav

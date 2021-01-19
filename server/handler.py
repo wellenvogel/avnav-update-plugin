@@ -29,6 +29,8 @@ import os
 import posixpath
 import urllib.parse
 
+from commands import Commands
+
 
 class Handler(http.server.SimpleHTTPRequestHandler):
 
@@ -122,14 +124,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         avnavRunning=self.server.getAvNavStatus()
       ))
       return
-    if request == 'updateList' or request == 'updatePackages' or request == 'restart':
+    if request in Commands.KNOWN_ACTIONS:
+      parameters=None
+      if request == 'updatePackages':
+        packageList=requestParam.get('package')
+        if packageList is None or len(packageList) < 1:
+          self.sendJsonResponse(self.getReturnData("missing parameter package"))
+          return
+        parameters=packageList
       logging.info("run command %s",request)
-      success=self.server.startAction(request)
-      if success:
-        self.sendJsonResponse(self.getReturnData(info="started"))
-      else:
-        self.sendJsonResponse(self.getReturnData("another action is running"))
-      return
+      try:
+        success=self.server.startAction(request,parameters)
+        if success:
+          self.sendJsonResponse(self.getReturnData(info="started"))
+        else:
+          self.sendJsonResponse(self.getReturnData("another action is running"))
+        return
+      except Exception as e:
+        self.sendJsonResponse(self.getReturnData("Error: %s"%str(e)))
+        return
 
     if request == 'fetchList':
       data=self.server.fetchPackageList()

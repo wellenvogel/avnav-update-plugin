@@ -108,7 +108,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
         c.send_message(message)
       except Exception as e:
         logging.debug("error sending to wsclient: %s",str(e))
-  def startAction(self,action):
+  def startAction(self,action,parameters=None):
     self.lock.acquire()
     try:
       if self.actionRunning:
@@ -118,21 +118,15 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       self.lock.release()
     self.currentAction=action
     if action in self.commandHandler.KNOWN_ACTIONS:
-      self.commandHandler.runAction(action)
+      try:
+        self.commandHandler.runAction(action,parameters)
+      except Exception as e:
+        logging.error("unable to start action %s: %s"%(action,str(e)))
+        self.actionRunning=False
+        raise
       return True
-    t=threading.Thread(target=self.actionRun,args=[action])
-    t.setDaemon(True)
-    t.start()
-    return True
 
-  def actionRun(self,command):
-    count=30
-    while count > 0:
-      self.sendToClients("action %s %d"%(command,count))
-      time.sleep(1)
-      count=count-1
-    self.sendToClients("action %s done" % (command))
-    self.actionRunning=False
+
   def _commandDone(self,rt):
     self.actionRunning=False
 

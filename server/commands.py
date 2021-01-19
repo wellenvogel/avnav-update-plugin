@@ -34,22 +34,62 @@ class Commands:
     self.runningCommand=None
     self.lastReturn=None
     self.finishCallback=finishCallback
+    self.commandList=[]
+    self.currentIndex=0
 
+  UPDATE_PRE=[
+    ['sudo','-n','systemctl','stop','avnav'],
+    ['sudo','-n','ntpdate','pool.ntp.org'],
+    ['sudo', '-n', 'apt-get', 'update']
+  ]
+  ALLOWED_PREFIX='avnav'
+  UPDATE=['sudo','-n','apt-get','install','-y']
+  UPDATE_POST=[
+    ['sudo','-n','systemctl','daemon-reload'],
+    ['sudo','-n','systemctl','start','avnav']
+  ]
   KNOWN_ACTIONS={
-      'updateList':['sudo','-n','apt-get','update'],
-      'restart':['sudo','-n','systemctl','restart','avnav'],
+      'updateList':[
+        ['sudo','-n','systemctl','stop','avnav'],
+        ['sudo', '-n', 'ntpdate', 'pool.ntp.org'],
+        ['sudo','-n','apt-get','update'],
+        ['sudo', '-n', 'systemctl', 'start', 'avnav']
+        ],
+      'restart':[['sudo','-n','systemctl','restart','avnav']],
+      'updatePackages':[]
        }
 
-  def runAction(self,action,autoCheck=True):
+  def runAction(self,action,parameters=None):
     commands=self.KNOWN_ACTIONS.get(action)
     if commands is None:
       return False
-    return self.runCommand(commands,autoCheck)
+    if action == 'updatePackages':
+      for p in parameters:
+        if not p.startswith(self.ALLOWED_PREFIX):
+          raise Exception("can only handle packages starting with %s"%self.ALLOWED_PREFIX)
+      commandList=[]
+      commandList.extend(self.UPDATE_PRE)
+      commandList.append(self.UPDATE+parameters)
+      commandList.extend(self.UPDATE_POST)
+      self.commandList=commandList
+    else:
+      self.commandList=commands
+    self.currentIndex=0
+    rt=self._runCommand()
+    if rt:
+      checker = threading.Thread(target=self._autoCheck)
+      checker.setDaemon(True)
+      checker.start()
+      return True
+    return False
 
 
-  def runCommand(self,command,autoCheck=True):
+  def _runCommand(self, ignoreRunning=False):
+    if self.currentIndex >= len(self.commandList) or self.currentIndex < 0:
+      raise Exception("internal error, command index out of range")
+    command = self.commandList[self.currentIndex]
     try:
-      if self.runningCommand is not None:
+      if self.runningCommand is not None and not ignoreRunning:
         raise Exception("another command is already running")
       self.stdoutLogger("starting %s"%" ".join(command))
       stderr=subprocess.PIPE if self.stderrLogger != self.stdoutLogger else subprocess.STDOUT
@@ -64,10 +104,6 @@ class Commands:
       stderrReader=threading.Thread(target=self._readStderr)
       stderrReader.setDaemon(True)
       stderrReader.start()
-    if autoCheck:
-      checker=threading.Thread(target=self._autoCheck)
-      checker.setDaemon(True)
-      checker.start()
     return True
 
   def _autoCheck(self):
@@ -76,7 +112,6 @@ class Commands:
         return
       rt=self.checkRunning()
       if rt is not None:
-        self.stdoutLogger("command finished with return code %d"%rt)
         return
       time.sleep(0.2)
 
@@ -97,14 +132,25 @@ class Commands:
   def hasRunningCommand(self):
     return self.runningCommand is not None
 
+  def _checkNextCommand(self):
+    if self.currentIndex >= (len(self.commandList) -1):
+      return False
+    self.currentIndex+=1
+    return self._runCommand(True)
+
   def checkRunning(self):
     if not self.runningCommand:
       return
     rt=self.runningCommand.poll()
     if rt is None:
       return
-    self.lastReturn=rt
-    self.runningCommand=None
+    self.stdoutLogger("command finished with return code %d" % rt)
+    if rt == 0 or rt != 0:
+      next=self._checkNextCommand()
+      if next:
+        return None
+    self.lastReturn = rt
+    self.runningCommand = None
     if self.finishCallback is not None:
       self.finishCallback(rt)
     return rt

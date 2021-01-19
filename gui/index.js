@@ -130,8 +130,25 @@
                         fetchList();
                         return;
                     }
-                    if (action === 'updateList' || action === 'updatePackages' || action == 'restart'){
+                    if (action === 'updateList' || action == 'restart'){
                         showConsole();
+                    }
+                    if (action === 'updatePackages'){
+                        let tickedBoxes=document.querySelectorAll('#infoFrame input[type=checkbox]:checked');
+                        let packageList=[];
+                        for (let i=0;i<tickedBoxes.length;i++){
+                            let name=tickedBoxes[i].getAttribute('data-name');
+                            if (name) packageList.push(name);
+                        }
+                        if (packageList.length < 1){
+                            showConsole("Error: no packages selected for update");
+                            return;
+                        }
+                        showConsole();
+                        action+="?"
+                        packageList.forEach(function(p){
+                            action+="package="+encodeURIComponent(p)+"&";
+                        });
                     }
                     apiRequest(action)
                         .then(function(response){
