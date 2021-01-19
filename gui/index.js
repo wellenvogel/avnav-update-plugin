@@ -51,7 +51,7 @@
                     e=document.createElement('input');
                     e.setAttribute('type','checkbox');
                     e.setAttribute('data-name',le.name);
-                    e.checked=!!le.candidate;
+                    e.checked=!!le.candidate && !!le.version;
                     td.appendChild(e);
                     d.appendChild(td);
                     listFrame.appendChild(d);
