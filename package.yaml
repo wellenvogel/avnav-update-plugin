@@ -19,12 +19,19 @@ description: |
   AvNav plugin to handle updates of avnav
 homepage: "https://example.com"
 license: "MIT"
+scripts:
+  postinstall: install/postinstall
 contents:
 - src: ./plugin.*
   dst: /usr/lib/avnav/plugins/update/
 - src: ./gui/*
   dst: /usr/lib/avnav/plugins/update/gui
+- src: ./install/*.service
+  dst: /lib/systemd/system/
 #- src: ./icons/*
 #  dst: /usr/lib/avnav/plugins/update/icons
 - src: ./server/*py
-  dst: /usr/lib/avnav/plugins/update/server  
+  dst: /usr/lib/avnav/plugins/update/server
+- src: install/avnav-updater
+  dst: /etc/avnav-updater
+  type: config
