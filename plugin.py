@@ -8,7 +8,7 @@
 #  to deal in the Software without restriction, including without limitation
 #  the rights to use, copy, modify, merge, publish, distribute, sublicense,
 #  and/or sell copies of the Software, and to permit persons to whom the
-#  Software is furnished to do so, subject to the following conditions:
+#  Software is furnished to do so, subject to the following conditions:self.SERVICE_CFG
 #
 #  The above copyright notice and this permission notice shall be included
 #  in all copies or substantial portions of the Software.
@@ -76,17 +76,19 @@ class Plugin(object):
     self.api.log("started")
     self.api.setStatus("INACTIVE","starting")
     port=None
-    if os.path.exists(self.SERVICE_CFG):
+    cfg=self.api.getConfigValue('config',self.SERVICE_CFG)
+    if os.path.exists(cfg):
       try:
-        with open(self.SERVICE_CFG,"r",encoding='utf-8') as f:
+        with open(cfg,"r",encoding='utf-8') as f:
           for line in f:
             line=line.rstrip().lstrip()
             line=re.sub('#.*','',line)
             if not line.startswith('PORT'):
               continue
-            par=line.split(" *= *",2)
+            par=re.split(" *= *",line)
             if len(par) >= 2:
               port=int(par[1])
+              break
       except Exception as e:
         self.api.setStatus("ERROR","unable to parse %s: %s"%(self.SERVICE_CFG,str(e)))
     else:
@@ -99,7 +101,11 @@ class Plugin(object):
     url="http://localhost:%d"%port
     pingUlr=url+"/api/ping"
     self.api.setStatus("STARTING", "trying to connect at port %d" % port)
-    self.api.registerUserApp("http://$HOST:%d/index.html"%port,'icon.png')
+    try:
+      self.api.registerUserApp("http://$HOST:%d/index.html?title=none"%port,os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
+    except Exception as e:
+      self.api.setStatus("ERROR","unable to register user app: %s"%str(e))
+      return
     while True:
       try:
         r=urlopen(pingUlr,timeout=5)

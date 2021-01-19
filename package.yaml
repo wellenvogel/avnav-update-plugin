@@ -28,8 +28,8 @@ contents:
   dst: /usr/lib/avnav/plugins/update/gui
 - src: ./install/*.service
   dst: /lib/systemd/system/
-#- src: ./icons/*
-#  dst: /usr/lib/avnav/plugins/update/icons
+- src: ./gui/icons/*
+  dst: /usr/lib/avnav/plugins/update/gui/icons
 - src: ./server/*py
   dst: /usr/lib/avnav/plugins/update/server
 - src: install/avnav-updater
