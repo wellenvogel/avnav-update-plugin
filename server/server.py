@@ -33,6 +33,7 @@ import threading
 import time
 import traceback
 
+from commands import Commands
 from handler import Handler
 from systemd import Systemd
 from websocket import HTTPWebSocketsHandler
@@ -82,6 +83,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.systemd=Systemd()
     self.lastAvNavState=None
     self.avNavState=AvNavState.UNCONFIGURED
+    self.commandHandler=Commands(self._logCommand,finishCallback=self._commandDone)
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -95,6 +97,10 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       del self.wsClients[client]
     except:
       pass
+
+  def _logCommand(self,msg):
+    logging.info("[COMMAND]:%s"%msg)
+    self.sendToClients(msg)
 
   def sendToClients(self,message):
     for c in list(self.wsClients.values()):
@@ -111,6 +117,9 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     finally:
       self.lock.release()
     self.currentAction=action
+    if action in self.commandHandler.KNOWN_ACTIONS:
+      self.commandHandler.runAction(action)
+      return True
     t=threading.Thread(target=self.actionRun,args=[action])
     t.setDaemon(True)
     t.start()
@@ -123,6 +132,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       time.sleep(1)
       count=count-1
     self.sendToClients("action %s done" % (command))
+    self.actionRunning=False
+  def _commandDone(self,rt):
     self.actionRunning=False
 
   def fetchPackageList(self):
