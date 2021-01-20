@@ -1,2 +1,11 @@
+#! /bin/sh
+servicedir=/etc/systemd/system/avnavupdater.service.d
+cfg=override.conf
+if [ ! -f $servicedir/$cfg ] ; then
+    if [ ! -d $servicecfg ] ; then
+        mkdir -p $servicecfg
+    fi
+    cp /usr/lib/avnav/plugins/update/install/$cfg $servicedir/$cfg
+fi
 systemctl daemon-reload
 systemctl enable --now avnavupdater

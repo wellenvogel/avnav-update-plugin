@@ -14,6 +14,7 @@ depends:
 - python3-apt
 - python3-dbus
 - ntpdate
+- sudo
 maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
 description: |
   AvNav plugin to handle updates of avnav
@@ -34,4 +35,11 @@ contents:
   dst: /usr/lib/avnav/plugins/update/server
 - src: install/avnav-updater
   dst: /etc/avnav-updater
+  type: config
+- src: ./install/setup_sudo.sh
+  dst: /usr/lib/avnav/plugins/update/install/setup_sudo.sh
+- src: ./install/avnavupdate
+  dst: /usr/lib/avnav/plugins/update/install/avnavupdate
+- src: ./install/override.conf
+  dst: /usr/lib/avnav/plugins/update/install/override.conf
   type: config

@@ -153,18 +153,19 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     return self.avNavState
 
 def usage():
-  print("usage: %s -p port [-l logdir]" % (sys.argv[0]))
+  print("usage: %s -p port [-l logdir] -h" % (sys.argv[0]))
 
 if __name__ == '__main__':
   try:
-    optlist,args=getopt.getopt(sys.argv[1:],'p:l:d')
+    optlist,args=getopt.getopt(sys.argv[1:],'p:l:dh')
   except getopt.GetoptError as err:
     print(err)
     usage()
     sys.exit(1)
-  logdir="/var/lib/avnavupdate"
+  logdir="avnavupdate"#below user Dir
   port=None
   loglevel=logging.INFO
+  useHome=False
   for o,a in optlist:
     if o == '-p':
       port=int(a)
@@ -172,11 +173,19 @@ if __name__ == '__main__':
       logdir=a
     elif o == '-d':
       loglevel=logging.DEBUG
+    elif o == '-h':
+      useHome=True
 
   if port is None:
     print("missing parameter port")
     sys.exit(1)
 
+  if not os.path.isabs(logdir) and useHome:
+    home=os.environ.get('HOME')
+    if home is None:
+      print("no environment variable HOME is set when starting with -h")
+      sys.exit(1)
+    logdir=os.path.join(home,logdir)
   if not os.path.exists(logdir):
     os.makedirs(logdir)
   if not os.path.exists(logdir) or not os.path.isdir(logdir):

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # vim: ts=2 sw=2 et ai
 ###############################################################################
 # Copyright (c) 2021 Andreas Vogel andreas@wellenvogel.net
@@ -21,21 +22,33 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
-[Unit]
-Description=AvNav update service
-After=syslog.target network.target
 
+pdir=`dirname $0`
+if [ "$USER" = "" ] ; then
+    echo "user environment variable not set"
+    exit 1
+fi
+echo "user=$USER"
+src="$pdir/avnavupdate"
+if [ ! -f "$src" ] ; then
+    echo "$src not found"
+    exit 1
+fi
+dst=/etc/sudoers.d
+if [ ! -d "$dst" ] ; then
+    echo "directory $dst not found"
+    exit 1
+fi
+dfile=$dst/avnavupdate
 
-[Service]
-User=pi
-Environment=PORT=8085
-Environment=LOGDIR=avnavupdate
-EnvironmentFile=/etc/avnav-updater
-ExecStart=/usr/bin/python3 /usr/lib/avnav/plugins/update/server/server.py -p ${PORT} -l ${LOGDIR} -h
-KillMode=control-group
-Restart=always
-TimeoutStopSec=10
-ExecStartPre=+/bin/sh -c /usr/lib/avnav/plugins/update/install/setup_sudo.sh
+if [ -f "$dfile" ] ; then
+    rm -f $dfile
+fi
+sed -e "s/#USER#/$USER/" "$src" > "$dfile"
+if [ $? != 0 ] ; then
+    echo "unable to write to $dfile"
+    exit 1
+fi
 
-[Install]
-WantedBy=multi-user.target
+chown root $dfile
+chmod 644 $dfile

@@ -1,3 +1,4 @@
+#sudo config for avnav update
 # vim: ts=2 sw=2 et ai
 ###############################################################################
 # Copyright (c) 2021 Andreas Vogel andreas@wellenvogel.net
@@ -21,21 +22,13 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
-[Unit]
-Description=AvNav update service
-After=syslog.target network.target
 
+#USER# ALL=(root)NOPASSWD:/bin/systemctl status avnav*
+#USER# ALL=(root)NOPASSWD:/bin/systemctl stop avnav*
+#USER# ALL=(root)NOPASSWD:/bin/systemctl start avnav*
+#USER# ALL=(root)NOPASSWD:/bin/systemctl restart avnav*
+#USER# ALL=(root)NOPASSWD:/bin/systemctl daemon-reload
+#USER# ALL=(root)NOPASSWD:/usr/bin/apt-get update
+#USER# ALL=(root)NOPASSWD:/usr/bin/apt-get install avnav*
+#USER# ALL=(root)NOPASSWD:/usr/sbin/ntpdate
 
-[Service]
-User=pi
-Environment=PORT=8085
-Environment=LOGDIR=avnavupdate
-EnvironmentFile=/etc/avnav-updater
-ExecStart=/usr/bin/python3 /usr/lib/avnav/plugins/update/server/server.py -p ${PORT} -l ${LOGDIR} -h
-KillMode=control-group
-Restart=always
-TimeoutStopSec=10
-ExecStartPre=+/bin/sh -c /usr/lib/avnav/plugins/update/install/setup_sudo.sh
-
-[Install]
-WantedBy=multi-user.target
