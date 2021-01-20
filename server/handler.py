@@ -118,12 +118,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       self.sendJsonResponse(self.getReturnData())
       return
     if request == 'status':
+      triggerNetworkUpdate=False
+      if requestParam.get('includeNet'):
+        triggerNetworkUpdate=True
       self.sendJsonResponse(self.getReturnData(
         actionRunning=self.server.hasRunningAction(),
         currentAction=self.server.currentAction,
         avnavRunning=self.server.getAvNavStatus(),
         updateSequence=self.server.getUpdateSequence(),
-        network=self.server.networkAvailable()
+        network=self.server.networkAvailable(triggerNetworkUpdate)
       ))
       return
     if request in Commands.KNOWN_ACTIONS:

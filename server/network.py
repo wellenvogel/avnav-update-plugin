@@ -49,11 +49,12 @@ class NetworkChecker(object):
       self.lastError=str(e)
       self.status=False
 
-  def available(self):
+  def available(self,triggerUpdate=True):
     self.lock.acquire()
     try:
       now=time.time()
-      if self.lastCheck is None or (self.lastCheck + self.checkInterval) < now or self.lastCheck > now:
+      if self.lastCheck is None or \
+          (((self.lastCheck + self.checkInterval) < now or self.lastCheck > now) and triggerUpdate):
         self.lastCheck = time.time()
         checker=threading.Thread(target=self._checkInternal)
         checker.setDaemon(True)

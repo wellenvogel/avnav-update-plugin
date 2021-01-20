@@ -24,6 +24,15 @@ text {
   }
 @keyframes blinker { to { opacity: 0; } }
 
+.unknown {
+    background-image: radial-gradient(rgba(128, 128, 128,1), rgba(128, 128, 128, 0.6),transparent);
+}
+.ok{
+    background-image: radial-gradient(rgba(10, 240, 10,1), rgba(10, 240, 10, 0.6),transparent);    
+}
+.error{
+    background-image: radial-gradient(rgba(240, 10, 10,1), rgba(240, 10, 10, 0.6),transparent);
+}
 #root {
     display: flex;
     flex-direction: row;
@@ -49,30 +58,49 @@ td, th {
     text-align: center;
 }
 
-.buttonFrame {
+.rightFrame {
     display: flex;
     flex-direction: column;
     margin: 1em;
 }
+.statusFrame {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid grey;
+    margin-bottom: 0.5em;
+}
+
+.buttonFrame {
+    display: flex;
+    flex-direction: column;
+}
 
 
 button {
-    width: 6em;
+    width: 8em;
     margin: 0.3em;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     height: 3em;
     border-width: 1px;
+    border-radius: 0.2em;
+    border-color: #80808047;
 }
 
 
-.currentAction {
+
+.currentState, .networkState, .currentAction {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    margin-top: 1em;
+    
+}
+.currentState{
     border-top: 1px solid grey;
+    border-bottom: 1px solid grey;
+    padding-bottom: 1em;
 }
 
 #runningAction.stopped {
@@ -82,6 +110,7 @@ button {
     display: block;
     margin: 0.3em;
     color: red;
+    height: 1.5em;
 }
 .label {
     display: block;
@@ -92,6 +121,7 @@ button {
 
 .statusText{
     margin: 0.3em;
+    height: 1em;
 }
 
 .statusText[data-status="3"] {
@@ -102,6 +132,19 @@ button {
 }
 .statusText[data-status="1"] {
     color:green;
+}
+
+#networkStatus {
+    display: block;
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+#networkUpdate {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .overlayFrame{
@@ -148,18 +191,32 @@ button {
     #root{
         flex-direction: column;
     }
-    .buttonFrame{
+    .buttonFrame, .statusFrame{
         flex-direction: row;
         flex-wrap: wrap;
+        justify-content: center;
+    }
+    .rightFrame{
+        align-items: stretch;
+        margin: 0;
     }
     .currentAction{
-        flex-direction: row;
         margin-top: unset;
         border-top: unset;
-        align-items: center;
     }
-    .actionName{
-        display: inline-block;
+    .currentAction, .currentState, .networkState {
+        margin-left: 1em;
+        margin-right: 1em;
+    }
+
+    .currentState{
+        border-top: unset;
+        border-bottom: unset;
+        border-left: 1px solid grey;
+        border-right: 1px solid grey;
+        padding-left: 1em;
+        padding-right: 1em;
+        padding-bottom: unset;
     }
 
 }

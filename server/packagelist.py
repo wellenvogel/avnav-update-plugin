@@ -22,6 +22,8 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
+import logging
+
 import apt_pkg
 import apt.progress.base
 
@@ -51,7 +53,7 @@ class PackageList:
     apt_pkg.init_system()
     cache = apt_pkg.Cache(progress=None)
     depcache =apt_pkg.DepCache(cache)
-    rt=[]
+    rt={}
     for pkg in cache.packages:
       if pkg.name.startswith(self.prefix):
         cand = depcache.get_candidate_ver(pkg)
@@ -60,5 +62,21 @@ class PackageList:
         if cand and cand.ver_str != current:
           candVersion=cand.ver_str
         nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=current,candidate=candVersion)
-        rt.append(nv.dict())
+        last=rt.get(pkg.name)
+        if last is not None:
+          if last.state != 'installed' and nv.state == 'installed':
+            last.state='installed'
+          if last.candidate is None and nv.candidate is not None:
+            last.candidate=nv.candidate
+          elif last.candidate is not None and nv.candidate is not None:
+            if last.candidate != nv.candidate:
+              logging.info("found 2 candidate versions for %s: %s and %s",pkg.name,last.candidate,nv.candidate)
+              try:
+                if nv.candidate > last.candidate:
+                  last.candidate=nv.candidate
+              except Exception as e:
+                pass
+        else:
+          rt[pkg.name]=nv
+    rt=list(map(lambda e: e.dict(),list(rt.values())))
     return rt

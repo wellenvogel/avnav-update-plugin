@@ -134,8 +134,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
   def fetchPackageList(self):
     return self.packageList.fetchPackages()
 
-  def networkAvailable(self):
-    return self.networkChecker.available()
+  def networkAvailable(self,triggerUpdate=True):
+    return self.networkChecker.available(triggerUpdate)
 
 
   def getAvNavStatus(self):

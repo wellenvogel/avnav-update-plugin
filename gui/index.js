@@ -166,8 +166,16 @@
         if (showCb){
             showCb.addEventListener('click',function(){showConsole();});
         }
+        let updateNetworkActive=document.getElementById('networkUpdate');
+        let networkState=document.getElementById('networkStatus');
+        let first=true;
         this.window.setInterval(function(){
-            apiRequest('status')
+            let url='status';
+            if (first || updateNetworkActive && updateNetworkActive.checked){
+                first=false;
+                url+="?includeNet=1";
+            }
+            apiRequest(url)
             .then(function(data){
                 let buttons=document.querySelectorAll('.buttonFrame button');
                 for (let i=0;i<buttons.length;i++){
@@ -196,6 +204,24 @@
                 if (statusText){
                     statusText.textContent=statusToText(data.avnavRunning);
                     statusText.setAttribute('data-status',data.avnavRunning);
+                }
+                if (networkState){
+                    let newState='unknown';
+                    if (data.network !== undefined){
+                        if (data.network) newState='ok';
+                        else newState='error';
+                    }
+                    if (! networkState.classList.contains(newState)){
+                        let states=['unknown','error','ok'];
+                        states.forEach(function(state){
+                            if (state !== newState){
+                                networkState.classList.remove(state);
+                            }
+                            else{
+                                networkState.classList.add(state);
+                            }
+                        });
+                    }
                 }
                 if (lastUpdateSequence !== data.updateSequence){
                     lastUpdateSequence=data.updateSequence;
