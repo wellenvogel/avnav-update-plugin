@@ -12,7 +12,7 @@ priority: "extra"
 depends:
 - avnav
 - python3-apt
-- python3-dbus
+- python3-pydbus
 - ntpdate
 - sudo
 maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
@@ -33,13 +33,9 @@ contents:
   dst: /usr/lib/avnav/plugins/update/gui/icons
 - src: ./server/*py
   dst: /usr/lib/avnav/plugins/update/server
-- src: install/avnav-updater
-  dst: /etc/avnav-updater
-  type: config
 - src: ./install/setup_sudo.sh
   dst: /usr/lib/avnav/plugins/update/install/setup_sudo.sh
 - src: ./install/avnavupdate
   dst: /usr/lib/avnav/plugins/update/install/avnavupdate
 - src: ./install/override.conf
   dst: /usr/lib/avnav/plugins/update/install/override.conf
-  type: config

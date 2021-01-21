@@ -24,20 +24,18 @@
 ###############################################################################
 import logging
 
-import dbus
+import pydbus
 
 class Systemd:
   def __init__(self):
-    bus = dbus.SystemBus()
-    systemd = bus.get_object(
+    self.bus = pydbus.SystemBus()
+
+  def _getObject(self,path):
+    return self.bus.get(
         'org.freedesktop.systemd1',
-        '/org/freedesktop/systemd1'
+        path
     )
 
-    self.manager = dbus.Interface(
-        systemd,
-        'org.freedesktop.systemd1.Manager'
-      )
 
   def getUnitInfo(self,units):
     '''
@@ -45,14 +43,24 @@ class Systemd:
     :param units: a list of unit names
     :return: a list of tuples (name,running)
     '''
-    rt=[]
+    rt = []
+    systemd= self._getObject('/org/freedesktop/systemd1')
+    if systemd is None:
+      return rt
+    manager=systemd['org.freedesktop.systemd1.Manager']
+
     if units is None or not isinstance(units,list):
       return rt
     try:
-      for unit in self.manager.ListUnits():
+      for unit in manager.ListUnits():
         name=unit[0]
         state=unit[4]
         if name in units:
+          try:
+            extended = self._getObject(unit[6])
+            logging.debug("extended info for %s: %s",name,str(extended))
+          except:
+            pass
           rt.append((name,state))
     except Exception as e:
       logging.error("Systemd: unable to list units: %s",str(e))

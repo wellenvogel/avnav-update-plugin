@@ -26,14 +26,16 @@ import json
 import os
 import re
 import time
+import urllib.parse
+from http import HTTPStatus
 from urllib.request import urlopen
+import pydbus
 
 
 class Plugin(object):
   CONFIG = [
 
           ]
-  SERVICE_CFG='/etc/avnav-updater'
   @classmethod
   def pluginInfo(cls):
     """
@@ -59,8 +61,38 @@ class Plugin(object):
         @type  api: AVNApi
     """
     self.api = api # type: AVNApi
+    self.api.registerRequestHandler(self.requestHandler)
+    self.updaterPort=None
+    self.findError=None
+    self.isConnected=False
 
 
+  def _findServicePort(self):
+    port=None
+    try:
+      BUSNAME = 'org.freedesktop.systemd1'
+      UNITNAME = 'avnavupdater.service'
+      bus = pydbus.SystemBus()
+      systemd = bus.get(
+        BUSNAME,
+        '/org/freedesktop/systemd1'
+      )
+      manager = systemd['org.freedesktop.systemd1.Manager']
+      unit = manager.GetUnit(UNITNAME)
+      extended = bus.get(BUSNAME, unit)
+      env=extended.Environment
+      for e in env:
+        nv=e.split("=",2)
+        if len(nv) > 1 and nv[0] == 'PORT':
+          port=int(nv[1])
+          break
+      if port is None:
+        self.findError="no port found for updater"
+    except Exception as e:
+      self.findError=str(e)
+    if port is None:
+      self.api.setStatus("ERROR", "unable to get updater port: %s" % self.findError)
+    self.updaterPort = port
 
 
   def run(self):
@@ -75,49 +107,62 @@ class Plugin(object):
     seq=0
     self.api.log("started")
     self.api.setStatus("INACTIVE","starting")
-    port=None
-    cfg=self.api.getConfigValue('config',self.SERVICE_CFG)
-    if os.path.exists(cfg):
-      try:
-        with open(cfg,"r",encoding='utf-8') as f:
-          for line in f:
-            line=line.rstrip().lstrip()
-            line=re.sub('#.*','',line)
-            if not line.startswith('PORT'):
-              continue
-            par=re.split(" *= *",line)
-            if len(par) >= 2:
-              port=int(par[1])
-              break
-      except Exception as e:
-        self.api.setStatus("ERROR","unable to parse %s: %s"%(self.SERVICE_CFG,str(e)))
-    else:
-      self.api.setStatus("INACTIVE","plugin service %s not installed"%self.SERVICE_CFG)
-      return
-    if port is None:
-      self.api.setStatus("INACTIVE","unable to get PORT from %s"%self.SERVICE_CFG)
-      return
-    connected=False
-    url="http://localhost:%d"%port
-    pingUlr=url+"/api/ping"
-    self.api.setStatus("STARTING", "trying to connect at port %d" % port)
+    self.isConnected=False
+    self.api.setStatus("STARTING", "started")
     try:
-      self.api.registerUserApp("http://$HOST:%d/index.html?title=none"%port,os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
+      self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
     except Exception as e:
       self.api.setStatus("ERROR","unable to register user app: %s"%str(e))
       return
     while True:
-      try:
-        r=urlopen(pingUlr,timeout=5)
-        res=json.loads(r.read())
-        if res.get('status') != 'OK':
-          self.api.setStatue("ERROR","invalid response from service: %s",res.get('STATUS'))
-        else:
-          connected=True
-          self.api.setStatus("NMEA", "service running at port %d" % port)
-      except Exception as e:
-        self.api.setStatus("ERROR","error connecting to %s: %s"%(pingUlr,str(e)))
-        connected=False
+      self._findServicePort()
+      if self.updaterPort:
+        url = "http://localhost:%d" % self.updaterPort
+        pingUlr = url + "/api/ping"
+        try:
+          r=urlopen(pingUlr,timeout=5)
+          res=json.loads(r.read())
+          if res.get('status') != 'OK':
+            self.api.setStatue("ERROR","invalid response from service: %s",res.get('STATUS'))
+          else:
+            self.isConnected=True
+            self.api.setStatus("NMEA", "service running at port %d" % self.updaterPort)
+        except Exception as e:
+          self.api.setStatus("ERROR","error connecting to %s: %s"%(pingUlr,str(e)))
+          self.isConnected=False
+      else:
+        self.api.setStatus("ERROR","unable to find updater service port")
       time.sleep(2)
 
+  def requestHandler(self, url, handler, args):
+    '''
+    handle api requests
+    @param url:
+    @param handler:
+    @param args:
+    @return:
+    '''
+    if url == 'index':
+      if self.updaterPort is None or not self.isConnected:
+        error = self.findError if self.updaterPort is None else "updater not available at port %s"%self.updaterPort
+        r=("<h1> unable to find updater service</h1><p>%s</p>"%error or '').encode('utf-8')
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/html")
+        handler.send_header("Content-Length", str(len(r)))
+        handler.send_header("Last-Modified", handler.date_time_string())
+        handler.end_headers()
+        handler.wfile.write(r)
 
+      else:
+        parts = urllib.parse.urlsplit(handler.path)
+        handler.send_response(HTTPStatus.MOVED_PERMANENTLY)
+        hostport=handler.headers.get('host')
+        hostport=re.sub(':[^:\]]*$','',hostport)
+        hostport+=':'+str(self.updaterPort)
+        if parts[0] == '':
+          proto="http"
+        else:
+          proto=parts[0]
+        new_parts = (proto, hostport, '/index.html',None,None)
+        new_url = urllib.parse.urlunsplit(new_parts)
+        handler.send_header("Location", new_url)

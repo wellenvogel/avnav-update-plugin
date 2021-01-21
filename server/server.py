@@ -200,6 +200,12 @@ if __name__ == '__main__':
   handler.doRollover()
   logging.basicConfig(handlers=[handler], level=loglevel, format='%(asctime)s-%(process)d: %(message)s')
   logging.info("AvNav updater started at port %d"%port)
+  try:
+    server=OurHTTPServer(('0.0.0.0',port),WSSimpleEcho)
+    server.serve_forever()
+  except Exception as e:
+    logging.error("Startup failed with exception: %s",str(e))
+    time.sleep(3)
+    sys.exit(1)
+  logging.info("AvNav finishing")
 
-  server=OurHTTPServer(('0.0.0.0',port),WSSimpleEcho)
-  server.serve_forever()

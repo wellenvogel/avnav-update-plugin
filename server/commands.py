@@ -133,7 +133,7 @@ class Commands:
       line = self.runningCommand.stderr.readline()
       if len(line) == 0:
         break
-      self.stdoutLogger(line.rstrip())
+      self.stderrLogger(line.rstrip())
 
   def getUpdateSequence(self):
     return self.updateSequence
@@ -142,7 +142,7 @@ class Commands:
     running=self.runningCommand
     if running is None:
       return False
-    return running.returncode is None
+    return running.returncode is None #TODO: avoid traps if next not started yet
 
   def _checkNextCommand(self):
     if self.currentIndex >= (len(self.commandList) -1):
