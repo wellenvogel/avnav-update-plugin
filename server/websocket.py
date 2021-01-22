@@ -68,6 +68,15 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
   _opcode_ping = 0x9
   _opcode_pong = 0xa
 
+  @classmethod
+  def send_queue_len(cls):
+    '''
+    derived classes could decide to have their own thread
+    being used for sending - in this case return 0 here
+    you must ensure that only one thread at a time is calling send_message
+    :return:
+    '''
+    return 20
 
   def on_ws_message(self, message):
     """Override this handler to process incoming websocket messages."""
@@ -82,7 +91,10 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
     pass
 
   def send_message(self, message):
-    self.queue.add(message)
+    if self.send_queue_len() > 0:
+      self.queue.add(message)
+    else:
+      self._send_message(self._opcode_text, message)
 
   def _fetch_messages(self):
     while self.connected:
@@ -93,7 +105,8 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
   def setup(self):
     SimpleHTTPRequestHandler.setup(self)
     self.connected = False
-    self.queue=OutQueue(20)
+    if self.send_queue_len() > 0:
+      self.queue=OutQueue(self.send_queue_len())
     self.mutex = threading.Lock()
 
   # def finish(self):
@@ -138,9 +151,10 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
       super().do_GET()
 
   def _read_messages(self):
-    sender=threading.Thread(target=self._fetch_messages)
-    sender.setDaemon(True)
-    sender.start()
+    if self.send_queue_len() > 0:
+      sender=threading.Thread(target=self._fetch_messages)
+      sender.setDaemon(True)
+      sender.start()
     while self.connected == True:
       try:
         self._read_next_message()

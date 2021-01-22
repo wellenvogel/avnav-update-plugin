@@ -22,9 +22,11 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
+import logging
 import subprocess
 import threading
 import time
+import traceback
 
 
 class Commands:
@@ -37,6 +39,8 @@ class Commands:
     self.commandList=[]
     self.currentIndex=0
     self.updateSequence=0
+    self.busy=False
+    self.lock=threading.Lock()
 
   UPDATE_PRE=[
     ['sudo','-n','systemctl','stop','avnav'],
@@ -60,26 +64,50 @@ class Commands:
       'updatePackages':[]
        }
   UPDATE_ACTIONS=['updateList','updatePackages']
-  def runAction(self,action,parameters=None):
+  def runAction(self,action,parameters=None,startcallback=None):
+    '''
+    start execution of an action
+    it will not start an if currently busy and return False
+    :param action:
+    :param parameters:
+    :param startcallback: if set, this will get called back before the action is really started
+    :return:
+    '''
     commands=self.KNOWN_ACTIONS.get(action)
     if commands is None:
       return False
-    if self.hasRunningCommand():
-      raise Exception("command already running")
-    if action == 'updatePackages':
-      for p in parameters:
-        if not p.startswith(self.ALLOWED_PREFIX):
-          raise Exception("can only handle packages starting with %s"%self.ALLOWED_PREFIX)
-      commandList=[]
-      commandList.extend(self.UPDATE_PRE)
-      commandList.append(self.UPDATE+parameters)
-      commandList.extend(self.UPDATE_POST)
-      self.commandList=commandList
-    else:
-      self.commandList=commands
-    self.currentIndex=0
-    updateSequence=action in self.UPDATE_ACTIONS
-    rt=self._runCommand()
+    busy=False
+    self.lock.acquire()
+    try:
+      busy=self.busy
+      if not busy:
+        self.busy=True
+    finally:
+      self.lock.release()
+    if busy:
+      logging.info("unable to start %s as another action is running",action)
+      return False
+    rt=False
+    try:
+      if action == 'updatePackages':
+        for p in parameters:
+          if not p.startswith(self.ALLOWED_PREFIX):
+            raise Exception("can only handle packages starting with %s"%self.ALLOWED_PREFIX)
+        commandList=[]
+        commandList.extend(self.UPDATE_PRE)
+        commandList.append(self.UPDATE+parameters)
+        commandList.extend(self.UPDATE_POST)
+        self.commandList=commandList
+      else:
+        self.commandList=commands
+      self.currentIndex=0
+      updateSequence=action in self.UPDATE_ACTIONS
+      if startcallback is not None:
+        startcallback()
+      rt=self._runCommand()
+    except Exception as e:
+      self.busy=False
+      raise
     if rt:
       checker = threading.Thread(target=self._autoCheck,args=[updateSequence])
       checker.setDaemon(True)
@@ -88,13 +116,11 @@ class Commands:
     return False
 
 
-  def _runCommand(self, ignoreRunning=False):
+  def _runCommand(self):
     if self.currentIndex >= len(self.commandList) or self.currentIndex < 0:
       raise Exception("internal error, command index out of range")
     command = self.commandList[self.currentIndex]
     try:
-      if self.runningCommand is not None and not ignoreRunning:
-        raise Exception("another command is already running")
       self.stdoutLogger("starting %s"%" ".join(command))
       stderr=subprocess.PIPE if self.stderrLogger != self.stdoutLogger else subprocess.STDOUT
       self.runningCommand=subprocess.Popen(command,close_fds=True,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=stderr)
@@ -111,15 +137,18 @@ class Commands:
     return True
 
   def _autoCheck(self,updateSequence=False):
-    while True:
-      if not self.hasRunningCommand():
-        return
-      rt=self.checkRunning()
-      if rt is not None:
-        if updateSequence:
-          self.updateSequence+=1
-        return
-      time.sleep(0.2)
+    while self.busy:
+      try:
+        rt=self._checkRunning()
+        if rt is not None:
+          if updateSequence:
+            self.updateSequence+=1
+          break
+        time.sleep(0.2)
+      except Exception as e:
+        logging.error("error in command handler: %s",traceback.format_exc())
+        time.sleep(0.2)
+    self.busy=False
 
   def _readStdout(self):
     while True:
@@ -139,19 +168,21 @@ class Commands:
     return self.updateSequence
 
   def hasRunningCommand(self):
-    running=self.runningCommand
-    if running is None:
-      return False
-    return running.returncode is None #TODO: avoid traps if next not started yet
+    return self.busy
 
   def _checkNextCommand(self):
     if self.currentIndex >= (len(self.commandList) -1):
       return False
     self.currentIndex+=1
-    return self._runCommand(True)
+    return self._runCommand()
 
-  def checkRunning(self):
-    if not self.hasRunningCommand():
+  def _checkRunning(self):
+    '''
+    check if the current command is still running
+    and potentially start a new one
+    :return: None if the command is still running, return code otherwise
+    '''
+    if not self.runningCommand:
       return
     rt=self.runningCommand.poll()
     if rt is None:
@@ -164,6 +195,7 @@ class Commands:
         return None
     self.lastReturn = rt
     self.runningCommand = None
+    self.busy=False
     if self.finishCallback is not None:
       self.finishCallback(rt)
     return rt

@@ -131,10 +131,7 @@
                     if (action === 'reload'){
                         fetchList();
                         return;
-                    }
-                    if (action === 'updateList' || action == 'restart'){
-                        showConsole();
-                    }
+                    }                
                     if (action === 'updatePackages'){
                         let tickedBoxes=document.querySelectorAll('#infoFrame input[type=checkbox]:checked');
                         let packageList=[];
@@ -145,8 +142,7 @@
                         if (packageList.length < 1){
                             showConsole("Error: no packages selected for update");
                             return;
-                        }
-                        showConsole();
+                        }                        
                         action+="?"
                         packageList.forEach(function(p){
                             action+="package="+encodeURIComponent(p)+"&";
@@ -154,7 +150,7 @@
                     }
                     apiRequest(action)
                         .then(function(response){
-                            
+                            showConsole();
                         })
                         .catch(function(error){
                             showConsole("Error: "+error);
