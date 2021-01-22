@@ -112,6 +112,10 @@
         if (status === 3) return "not installed";
     }
     window.addEventListener('load',function(){
+        let title=document.getElementById('title');
+        if (window.location.search.match(/title=no/)){
+            if (title) title.style.display="none";
+        }
         let cb=document.getElementById('closeOverlay');
         if (cb){
             cb.addEventListener('click',function(){

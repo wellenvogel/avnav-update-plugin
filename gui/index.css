@@ -33,6 +33,14 @@ text {
 .error{
     background-image: radial-gradient(rgba(240, 10, 10,1), rgba(240, 10, 10, 0.6),transparent);
 }
+.title {
+    height: 4em;
+    background-color: rgb(84, 110, 122);
+    color: white;
+    font-weight: bold;
+    flex-shrink: 0;
+    padding: 1em;
+}
 #root {
     display: flex;
     flex-direction: row;
