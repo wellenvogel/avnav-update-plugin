@@ -33,6 +33,7 @@ from commands import Commands
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+  protocol_version = "HTTP/1.1" #necessary for websockets!
 
   @classmethod
   def getReturnData(cls, error=None, **kwargs):

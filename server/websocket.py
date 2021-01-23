@@ -222,11 +222,11 @@ class HTTPWebSocketsHandler(SimpleHTTPRequestHandler):
     if headers.get("Upgrade", None) != "websocket":
       return
     key = headers['Sec-WebSocket-Key']
-    digest = b64encode(sha1((key + self._ws_GUID).encode('utf-8')).digest())
+    digest = b64encode(sha1((key + self._ws_GUID).encode()).digest())
     self.send_response(101, 'Switching Protocols')
     self.send_header('Upgrade', 'websocket')
     self.send_header('Connection', 'Upgrade')
-    self.send_header('Sec-WebSocket-Accept', digest.decode('ascii'))
+    self.send_header('Sec-WebSocket-Accept', digest.decode())
     self.end_headers()
     self.connected = True
     self.close_connection = False
