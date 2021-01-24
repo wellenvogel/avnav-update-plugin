@@ -31,6 +31,8 @@ contents:
   dst: /lib/systemd/system/
 - src: ./gui/icons/*
   dst: /usr/lib/avnav/plugins/update/gui/icons
+- src: ./gui/lib/*
+  dst: /usr/lib/avnav/plugins/update/gui/lib
 - src: ./server/*py
   dst: /usr/lib/avnav/plugins/update/server
 - src: ./install/setup_sudo.sh

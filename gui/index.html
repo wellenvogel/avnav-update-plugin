@@ -7,7 +7,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="AvNavUpdate">
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="lib/codeflask.css">
     <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="lib/codeflask.min.js"></script>
 
     <title>AvNavUpdate</title>
   </head>
@@ -45,6 +47,7 @@
             <button id="updatePackages" data-action="updatePackages">Update Packages</button>
             <button id="restart" data-action="restart">Restart AvNav</button>
             <button id="showLog" data-action="showLog">AvNav Log</button>
+            <button id="showEdit" data-action="showEdit">AvNav Config</button>
           </div>
       </div>
     </div>  
@@ -71,6 +74,17 @@
         </div>
       </div>
     </div>
+    <div class="overlayFrame" id="editOverlay">
+        <div class="overlay">
+          <div class="overlayContent">
+    
+          </div>
+          <div class="overlayButtons">
+            <button id="closeEditOverlay">Cancel</button>
+            <button id="saveEditOverlay">Save</button>
+          </div>
+        </div>
+      </div>
   </body>
 </html>
 

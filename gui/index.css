@@ -172,6 +172,10 @@ button {
     visibility: hidden;
 }
 
+#responseOverlay{
+    z-index: 20;
+}
+
 .overlay {
     display: flex;
     flex-direction: column;
@@ -184,6 +188,9 @@ button {
 #logOverlay .overlay{
     max-width: unset;
 }
+#editOverlay .overlay{
+    max-width: unset;
+}
 
 .overlayContent {
     flex: 1;
@@ -192,7 +199,8 @@ button {
     overflow-y: auto;
     overflow-x: hidden;
     word-break: break-all;
-    white-space: pre;
+    white-space: pre-line;
+    position: relative;
 }
 
 #logOverlay .overlayContent{

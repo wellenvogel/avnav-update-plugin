@@ -1,6 +1,7 @@
 (function(){
     let webSocketConnection;
     let lastUpdateSequence;
+    let flask;
     let apiRequest=function(command){
         let url="/api/"+command;
         return new Promise(function(resolve,reject){
@@ -127,6 +128,70 @@
         overlay.style.visibility='unset';
         fillLog();
     }
+    let ignoreNextChanged=false;
+    let codeChanged=function(changed){
+        let b=document.getElementById('saveEditOverlay');
+        if (! b ) return;
+        if (changed && ! ignoreNextChanged){
+            b.removeAttribute('disabled');
+        }
+        else{
+            b.setAttribute('disabled','');
+        }
+        ignoreNextChanged=false;
+    }
+
+    let showEdit=function(){
+        let overlay=document.getElementById('editOverlay');
+        if (! overlay) return;
+        overlay.style.visibility='unset';
+        fetch('/api/getConfig')
+        .then(function(resp){
+            return resp.text();
+        })
+        .then(function(text){
+            if (flask) flask.updateCode(text);
+            codeChanged(false);
+            ignoreNextChanged=true;
+        })
+        .catch(function(error){
+            showConsole(error);
+        })
+    }
+    let parseXml=function(text){
+        let xmlDoc=undefined;
+        if (window.DOMParser) {
+            // code for modern browsers
+            let parser = new DOMParser();
+            xmlDoc = parser.parseFromString(text,"text/xml");
+        } else {
+            // code for old IE browsers
+            xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+            xmlDoc.async = false;
+            xmlDoc.loadXML(text);
+        }
+        return xmlDoc;
+    };
+
+    let saveConfig=function(){
+        if (! flask) return;
+        let data=flask.getCode();
+        try{
+            let doc=parseXml(data);
+            let errors=doc.getElementsByTagName('parsererror');
+            if (errors.length > 0){
+                showConsole("invalid xml: "+errors[0].textContent.replace(/ *[bB]elow is a .*/,''));
+                return;
+            }
+        }catch(e){
+            showConsole("internal error: "+e);
+            return;
+        }
+        if (confirm("Really overwrite AvNav config and restart?")){
+            alert("starting upload"); //TODO
+            return true;
+        }
+    }
 
     let statusToText=function(status){
         if (status === 1) return "running";
@@ -166,7 +231,23 @@
                 window.location.href='/api/downloadLog';
             })
         }
-        let actionButtons=['refresh','updateList','updatePackages','restart','showLog'];
+        let ecb=document.getElementById('closeEditOverlay');
+        if (ecb){
+            ecb.addEventListener('click',function(){
+                let ov=document.getElementById('editOverlay');
+                if (ov) ov.style.visibility='hidden';
+            })
+        }
+        ecb=document.getElementById('saveEditOverlay');
+        if (ecb){
+            ecb.addEventListener('click',function(){
+                if (! saveConfig()) return;
+                let ov=document.getElementById('editOverlay');
+                if (ov) ov.style.visibility='hidden';
+            }) 
+        }
+        let actionButtons=['refresh','updateList','updatePackages',
+            'restart','showLog','showEdit'];
         actionButtons.forEach(function(bt){
             let bel=document.getElementById(bt);
             if (bel){
@@ -175,6 +256,10 @@
                     if (!action) return;
                     if (action == 'showLog'){
                         showLog();
+                        return;
+                    }
+                    if (action == 'showEdit'){
+                        showEdit();
                         return;
                     }
                     if (action === 'reload'){
@@ -211,6 +296,12 @@
         if (showCb){
             showCb.addEventListener('click',function(){showConsole();});
         }
+        flask=new CodeFlask('#editOverlay .overlayContent',{
+            language: 'markup',
+            lineNumbers: true,
+            defaultTheme: false
+        });
+        flask.onUpdate(function(){codeChanged(true)});
         let updateNetworkActive=document.getElementById('networkUpdate');
         let networkState=document.getElementById('networkStatus');
         let first=true;
