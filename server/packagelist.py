@@ -36,8 +36,9 @@ class NV:
     return self.__dict__
 
 class PackageList:
-  def __init__(self,prefix):
+  def __init__(self,prefix,installedOnlyPrefix=None):
     self.prefix=prefix
+    self.installedOnlyPrefix=installedOnlyPrefix
 
   @classmethod
   def state_str(cls,state):
@@ -78,5 +79,11 @@ class PackageList:
                 pass
         else:
           rt[pkg.name]=nv
-    rt=list(map(lambda e: e.dict(),list(rt.values())))
-    return rt
+    rtlist=[]
+    for k,pkg in rt.items():
+      if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
+        if pkg.version is None or pkg.version == '':
+          continue
+      rtlist.append(pkg.dict())
+    logging.debug("fetchPackageList: %s",str(rtlist))
+    return rtlist

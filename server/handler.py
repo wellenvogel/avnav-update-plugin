@@ -22,12 +22,15 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
+import datetime
 import http.server
 import json
 import logging
 import os
 import posixpath
+import shutil
 import urllib.parse
+from http import HTTPStatus
 
 from commands import Commands
 
@@ -104,7 +107,38 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     self.end_headers()
     self.wfile.write(r)
 
-
+  def sendTextFile(self,filename,attachment=None,maxBytes=None):
+    if filename is None or not os.path.exists(filename):
+      self.send_response(404,'not found')
+      self.end_headers()
+      return
+    try:
+      with open(filename,'rb') as f:
+        self.send_response(HTTPStatus.OK)
+        if attachment is not None:
+          self.send_header('Content-Disposition',
+                           'attachment;filename="%s"'%attachment)
+        self.send_header("Content-type", 'text/plain')
+        fs = os.fstat(f.fileno())
+        seekBytes=0
+        flen=fs[6]
+        if maxBytes is not None:
+          seekBytes=flen-maxBytes
+          if seekBytes < 0:
+            seekBytes=0
+          flen-=seekBytes
+          if seekBytes > 0:
+            f.seek(seekBytes)
+        self.send_header("Content-Length", str(flen))
+        self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+        self.end_headers()
+        shutil.copyfileobj(f,self.wfile)
+        self.wfile.close()
+        return
+    except:
+      pass
+    self.send_response(404, 'not found')
+    self.end_headers()
 
   def do_GET(self):
     if not self.path.startswith("/api"):
@@ -122,13 +156,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       triggerNetworkUpdate=False
       if requestParam.get('includeNet'):
         triggerNetworkUpdate=True
-      self.sendJsonResponse(self.getReturnData(
-        actionRunning=self.server.hasRunningAction(),
-        currentAction=self.server.currentAction,
-        avnavRunning=self.server.getAvNavStatus(),
-        updateSequence=self.server.getUpdateSequence(),
-        network=self.server.networkAvailable(triggerNetworkUpdate)
-      ))
+      status=self.server.getStatus(triggerNetworkUpdate)
+      status.update(self.getReturnData())
+      self.sendJsonResponse(status)
       return
     if request in Commands.KNOWN_ACTIONS:
       parameters=None
@@ -153,6 +183,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     if request == 'fetchList':
       data=self.server.fetchPackageList()
       self.sendJsonResponse(self.getReturnData(data=data))
+      return
+    if request == 'getLog':
+      maxSize=requestParam.get('maxSize')
+      if maxSize is not None and len(maxSize) > 0:
+        maxSize=int(maxSize[0])
+      state=self.server.getAvNavStatus()
+      self.sendTextFile(state.getLogFile(),maxBytes=maxSize)
+      return
+    if request == 'getConfig':
+      state=self.server.getAvNavStatus()
+      self.sendTextFile(state.getConfigFile())
+      return
+    if request == 'downloadLog':
+      state = self.server.getAvNavStatus()
+      self.sendTextFile(state.getLogFile(),"avnav-%s.log"%
+                        (datetime.datetime.now().strftime("%Y%m%d")))
       return
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
 

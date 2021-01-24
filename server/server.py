@@ -84,20 +84,44 @@ class WSConsole(HTTPWebSocketsHandler, Handler):
 
 AVNAV_UNIT="avnav.service"
 
-class AvNavState:
+class AvNavState(object):
   RUNNING=1
   STOPPED=2
   UNCONFIGURED=3
+
+  def __init__(self,state=UNCONFIGURED,workdir=None):
+    self.state=state
+    self.workdir=workdir
+
+  def __str__(self) -> str:
+    return "AvNav info state=%d, workdir=%s"%(self.state,str(self.workdir))
+
+  def getConfigFile(self,checkExistance=True):
+    if self.workdir is None:
+      return None
+    fname=os.path.join(self.workdir,'avnav_server.xml')
+    if not checkExistance or os.path.exists(fname):
+      return fname
+
+  def getLogFile(self,checkExistance=True):
+    if self.workdir is None:
+      return None
+    fname=os.path.join(self.workdir,'log','avnav.log')
+    if not checkExistance or os.path.exists(fname):
+      return fname
+
+
+testDir=None
 
 class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
   def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
     http.server.HTTPServer.__init__(self,server_address,RequestHandlerClass,bind_and_activate)
     self.actionRunning=False
     self.currentAction=None
-    self.packageList=PackageList('avnav')
+    self.packageList=PackageList('avnav','avnav-raspi')
     self.systemd=Systemd()
     self.lastAvNavState=None
-    self.avNavState=AvNavState.UNCONFIGURED
+    self.avNavState=AvNavState()
     self.commandHandler=Commands(self._logCommand)
     self.networkChecker=NetworkChecker('www.google.de',checkInterval=20)
     self.networkChecker.available()
@@ -127,30 +151,51 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       self.currentAction=action
       return True
 
-  def getUpdateSequence(self):
-    return self.commandHandler.getUpdateSequence()
-  def hasRunningAction(self):
-    return self.commandHandler.hasRunningCommand()
-
   def fetchPackageList(self):
     return self.packageList.fetchPackages()
 
-  def networkAvailable(self,triggerUpdate=True):
-    return self.networkChecker.available(triggerUpdate)
-
+  def getStatus(self,triggerNetworkUpdate):
+    avNavState=self.getAvNavStatus()
+    return {
+      'actionRunning': self.commandHandler.hasRunningCommand(),
+      'currentAction': self.currentAction,
+      'avnavRunning': avNavState.state,
+      'updateSequence': self.commandHandler.getUpdateSequence(),
+      'network':self.networkChecker.available(triggerNetworkUpdate),
+      'configFile': avNavState.getConfigFile() is not None,
+      'logFile': avNavState.getLogFile() is not None
+    }
 
   def getAvNavStatus(self):
     now=time.time()
     if self.lastAvNavState is None or ( self.lastAvNavState + 2 ) < now or self.lastAvNavState > now:
-      rt=AvNavState.UNCONFIGURED
-      states=self.systemd.getUnitInfo([AVNAV_UNIT])
-      if len (states) >= 1:
-        if states[0][1] == 'running':
-          rt= AvNavState.RUNNING
+      self.lastAvNavState = now
+      logging.debug("fetch AvNav state")
+      infos=self.systemd.getUnitInfo([AVNAV_UNIT])
+      if len(infos) > 0:
+        info=infos[0]
+        logging.debug("found avnav info from systemd")
+        state=AvNavState.UNCONFIGURED
+        if info.status == 'running':
+          state= AvNavState.RUNNING
         else:
-          rt= AvNavState.STOPPED
-      self.lastAvNavState=now
-      self.avNavState=rt
+          state= AvNavState.STOPPED
+        workdir = None
+        if info.commandline is not None:
+          #find the -b parameter
+          lastIsB=False
+          for p in info.commandline[1:]:
+            if lastIsB:
+              workdir=p
+              break
+            if p == '-b':
+              lastIsB=True
+              continue
+        self.avNavState=AvNavState(state,workdir)
+        logging.debug("AvNav %s", str(self.avNavState))
+      else:
+        if testDir is not None:
+          self.avNavState=AvNavState(workdir=testDir)
     return self.avNavState
 
 def usage():
@@ -158,7 +203,7 @@ def usage():
 
 if __name__ == '__main__':
   try:
-    optlist,args=getopt.getopt(sys.argv[1:],'p:l:dh')
+    optlist,args=getopt.getopt(sys.argv[1:],'p:l:dht:')
   except getopt.GetoptError as err:
     print(err)
     usage()
@@ -176,6 +221,8 @@ if __name__ == '__main__':
       loglevel=logging.DEBUG
     elif o == '-h':
       useHome=True
+    elif o == '-t':
+      testDir=a
 
   if port is None:
     print("missing parameter port")

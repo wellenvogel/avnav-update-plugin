@@ -26,6 +26,12 @@ import logging
 
 import pydbus
 
+class UnitInfo:
+  def __init__(self,name,status,commandline):
+    self.name=name
+    self.status=status
+    self.commandline=commandline
+
 class Systemd:
   def __init__(self):
     self.bus = pydbus.SystemBus()
@@ -56,12 +62,14 @@ class Systemd:
         name=unit[0]
         state=unit[4]
         if name in units:
+          cmd=None
           try:
             extended = self._getObject(unit[6])
-            logging.debug("extended info for %s: %s",name,str(extended))
+            cmd=extended.ExecStart
+            logging.debug("extended info for %s: %s,cmd=%s",name,str(extended),str(cmd[0][1]))
           except:
             pass
-          rt.append((name,state))
+          rt.append(UnitInfo(name,state,cmd[0][1] if cmd is not None else []))
     except Exception as e:
       logging.error("Systemd: unable to list units: %s",str(e))
       raise

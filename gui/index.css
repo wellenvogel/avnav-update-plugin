@@ -181,6 +181,9 @@ button {
     background-color: white;
     flex: 1;
 }
+#logOverlay .overlay{
+    max-width: unset;
+}
 
 .overlayContent {
     flex: 1;
@@ -190,6 +193,10 @@ button {
     overflow-x: hidden;
     word-break: break-all;
     white-space: pre;
+}
+
+#logOverlay .overlayContent{
+    white-space: pre-line;
 }
 .overlayButtons {
     display: flex;

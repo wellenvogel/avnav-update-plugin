@@ -106,6 +106,28 @@
         }
     }
 
+    let fillLog=function(){
+        let logElement=document.querySelector('#logOverlay .overlayContent');
+        if (! logElement) return;
+        fetch('/api/getLog?maxSize=100000')
+            .then(function(resp){
+                return resp.text();
+            })
+            .then(function(text){
+                logElement.textContent=text;
+            })
+            .catch(function(error){
+                showConsole(error);
+            })
+    }
+
+    let showLog=function(){
+        let overlay=document.getElementById('logOverlay');
+        if (! overlay) return;
+        overlay.style.visibility='unset';
+        fillLog();
+    }
+
     let statusToText=function(status){
         if (status === 1) return "running";
         if (status === 2) return "stopped";
@@ -125,13 +147,36 @@
                 showHideShowCb(true);
             })
         }
-        let actionButtons=['refresh','updateList','updatePackages','restart'];
+        let clb=document.getElementById('closeLogOverlay');
+        if (clb){
+            clb.addEventListener('click',function(){
+                let ov=document.getElementById('logOverlay');
+                if (ov) ov.style.visibility='hidden';
+            })
+        }
+        clb=document.getElementById('refreshLogOverlay');
+        if (clb){
+            clb.addEventListener('click',function(){
+                fillLog();
+            })
+        }
+        clb=document.getElementById('downloadLogOverlay');
+        if (clb){
+            clb.addEventListener('click',function(){
+                window.location.href='/api/downloadLog';
+            })
+        }
+        let actionButtons=['refresh','updateList','updatePackages','restart','showLog'];
         actionButtons.forEach(function(bt){
             let bel=document.getElementById(bt);
             if (bel){
                 bel.addEventListener('click',function(ev){
                     let action=ev.target.getAttribute('data-action');
                     if (!action) return;
+                    if (action == 'showLog'){
+                        showLog();
+                        return;
+                    }
                     if (action === 'reload'){
                         fetchList();
                         return;
@@ -221,6 +266,15 @@
                                 networkState.classList.add(state);
                             }
                         });
+                    }
+                }
+                let logButton=document.getElementById('showLog');
+                if (logButton){
+                    if (data.logFile){
+                        logButton.removeAttribute('disabled');
+                    }
+                    else{
+                        logButton.setAttribute('disabled','');
                     }
                 }
                 if (lastUpdateSequence !== data.updateSequence){
