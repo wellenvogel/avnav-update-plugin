@@ -88,6 +88,9 @@ class AvNavState(object):
   RUNNING=1
   STOPPED=2
   UNCONFIGURED=3
+  FILE_STATE_NE="nonexistent"
+  FILE_STATE_R="read"
+  FILE_STATE_W="write"
 
   def __init__(self,state=UNCONFIGURED,workdir=None):
     self.state=state
@@ -102,6 +105,15 @@ class AvNavState(object):
     fname=os.path.join(self.workdir,'avnav_server.xml')
     if not checkExistance or os.path.exists(fname):
       return fname
+  def configFileState(self):
+    fn=self.getConfigFile()
+    if fn is None:
+      return self.FILE_STATE_NE
+    if os.access(fn,os.W_OK):
+      return self.FILE_STATE_W
+    if os.access(fn,os.R_OK):
+      return self.FILE_STATE_R
+    return self.FILE_STATE_NE
 
   def getLogFile(self,checkExistance=True):
     if self.workdir is None:
@@ -162,8 +174,8 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
       'avnavRunning': avNavState.state,
       'updateSequence': self.commandHandler.getUpdateSequence(),
       'network':self.networkChecker.available(triggerNetworkUpdate),
-      'configFile': avNavState.getConfigFile() is not None,
-      'logFile': avNavState.getLogFile() is not None
+      'logFile': 'read' if avNavState.getConfigFile() is not None else 'nonexistent',
+      'configFile': avNavState.configFileState()
     }
 
   def getAvNavStatus(self):

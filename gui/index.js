@@ -187,9 +187,31 @@
             showConsole("internal error: "+e);
             return;
         }
-        if (confirm("Really overwrite AvNav config and restart?")){
-            alert("starting upload"); //TODO
-            return true;
+        if (confirm("Really overwrite AvNav config and restart AvNav?")){
+            fetch('/api/uploadConfig',{
+                method: 'POST',
+                headers:{
+                    'Content-Type':'text/plain'
+                },
+                body: data
+            })
+            .then(function(resp){
+                return resp.json();
+            })
+            .then(function(result){
+                if (! result.status || result.status !== 'OK'){
+                    showConsole(result.status);
+                    return;
+                }
+                let overlay=document.getElementById('editOverlay');
+                if (! overlay) return;
+                overlay.style.visibility='hidden';
+                startAction('restart');
+            })
+            .catch(function(error){
+                showConsole(error);
+            })
+            return ;
         }
     }
 
@@ -198,6 +220,44 @@
         if (status === 2) return "stopped";
         if (status === 3) return "not installed";
     }
+    let startAction = function (action) {
+        if (!action) return;
+        if (action == 'showLog') {
+            showLog();
+            return;
+        }
+        if (action == 'showEdit') {
+            showEdit();
+            return;
+        }
+        if (action === 'reload') {
+            fetchList();
+            return;
+        }
+        if (action === 'updatePackages') {
+            let tickedBoxes = document.querySelectorAll('#infoFrame input[type=checkbox]:checked');
+            let packageList = [];
+            for (let i = 0; i < tickedBoxes.length; i++) {
+                let name = tickedBoxes[i].getAttribute('data-name');
+                if (name) packageList.push(name);
+            }
+            if (packageList.length < 1) {
+                showConsole("Error: no packages selected for update");
+                return;
+            }
+            action += "?"
+            packageList.forEach(function (p) {
+                action += "package=" + encodeURIComponent(p) + "&";
+            });
+        }
+        apiRequest(action)
+            .then(function (response) {
+                showConsole();
+            })
+            .catch(function (error) {
+                showConsole("Error: " + error);
+            })
+    };
     window.addEventListener('load',function(){
         let title=document.getElementById('title');
         if (window.location.search.match(/title=no/)){
@@ -253,42 +313,7 @@
             if (bel){
                 bel.addEventListener('click',function(ev){
                     let action=ev.target.getAttribute('data-action');
-                    if (!action) return;
-                    if (action == 'showLog'){
-                        showLog();
-                        return;
-                    }
-                    if (action == 'showEdit'){
-                        showEdit();
-                        return;
-                    }
-                    if (action === 'reload'){
-                        fetchList();
-                        return;
-                    }                
-                    if (action === 'updatePackages'){
-                        let tickedBoxes=document.querySelectorAll('#infoFrame input[type=checkbox]:checked');
-                        let packageList=[];
-                        for (let i=0;i<tickedBoxes.length;i++){
-                            let name=tickedBoxes[i].getAttribute('data-name');
-                            if (name) packageList.push(name);
-                        }
-                        if (packageList.length < 1){
-                            showConsole("Error: no packages selected for update");
-                            return;
-                        }                        
-                        action+="?"
-                        packageList.forEach(function(p){
-                            action+="package="+encodeURIComponent(p)+"&";
-                        });
-                    }
-                    apiRequest(action)
-                        .then(function(response){
-                            showConsole();
-                        })
-                        .catch(function(error){
-                            showConsole("Error: "+error);
-                        })
+                    startAction(action);
                 })
             }
         })
@@ -361,11 +386,20 @@
                 }
                 let logButton=document.getElementById('showLog');
                 if (logButton){
-                    if (data.logFile){
+                    if (data.logFile === 'read'){
                         logButton.removeAttribute('disabled');
                     }
                     else{
                         logButton.setAttribute('disabled','');
+                    }
+                }
+                let editButton=document.getElementById('showEdit');
+                if (editButton){
+                    if (data.configFile === 'read' || data.configFile === 'write'){
+                        editButton.removeAttribute('disabled');
+                    }
+                    else{
+                        editButton.setAttribute('disabled','');
                     }
                 }
                 if (lastUpdateSequence !== data.updateSequence){
