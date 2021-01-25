@@ -77,6 +77,8 @@ class PackageList:
                   last.candidate=nv.candidate
               except Exception as e:
                 pass
+          if last.version == last.candidate:
+            last.candidate=None
         else:
           rt[pkg.name]=nv
     rtlist=[]
