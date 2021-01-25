@@ -71,11 +71,38 @@
             }catch(e){console.log("error closing ws: "+e);}
         }
     }
-    let showHideShowCb=function(show){
-        let b=document.getElementById('showConsole');
-        if (!b) return;
-        if (show) b.style.visibility='inherit';
-        else b.style.visibility='hidden';
+    let showHideOverlay=function(id,show){
+        let ovl=id;
+        if (typeof(id) === 'string'){
+            ovl=document.getElementById(id);
+        }
+        if (!ovl) return;
+        ovl.style.visibility=show?'unset':'hidden';
+        return ovl;
+    }
+    let closeOverlayFromButton=function(btEvent){
+        let target=btEvent.target;
+        while (target && target.parentElement){
+            target=target.parentElement;
+            if (target.classList.contains('overlayFrame')){
+                showHideOverlay(target,false);
+                return;
+            }
+        }
+    }
+    let buttonEnable=function(id,enable){
+        let bt=id;
+        if (typeof(id) === 'string'){
+            bt=document.getElementById(id);
+        }
+        if (! bt) return;
+        if (enable){
+            bt.removeAttribute('disabled');
+        }
+        else{
+            bt.setAttribute('disabled','');
+        }
+
     }
     let showConsole=function(opt_text){
         let overlay=document.getElementById('responseOverlay');
@@ -83,7 +110,6 @@
         overlay.style.visibility='unset';
         let content=overlay.querySelector('.overlayContent');
         closeWs();
-        showHideShowCb(false);
         if (opt_text){
             content.textContent=opt_text;
             return;
@@ -116,6 +142,7 @@
             })
             .then(function(text){
                 logElement.textContent=text;
+                logElement.scrollTop=logElement.scrollHeight;
             })
             .catch(function(error){
                 showConsole(error);
@@ -130,21 +157,12 @@
     }
     let ignoreNextChanged=false;
     let codeChanged=function(changed){
-        let b=document.getElementById('saveEditOverlay');
-        if (! b ) return;
-        if (changed && ! ignoreNextChanged){
-            b.removeAttribute('disabled');
-        }
-        else{
-            b.setAttribute('disabled','');
-        }
+        buttonEnable('saveEditOverlay',changed && ! ignoreNextChanged);
         ignoreNextChanged=false;
     }
 
     let showEdit=function(){
-        let overlay=document.getElementById('editOverlay');
-        if (! overlay) return;
-        overlay.style.visibility='unset';
+        showHideOverlay('editOverlay',true);
         fetch('/api/getConfig')
         .then(function(resp){
             return resp.text();
@@ -203,9 +221,7 @@
                     showConsole(result.status);
                     return;
                 }
-                let overlay=document.getElementById('editOverlay');
-                if (! overlay) return;
-                overlay.style.visibility='hidden';
+                showHideOverlay('editOverlay',false);
                 startAction('restart');
             })
             .catch(function(error){
@@ -228,10 +244,6 @@
         }
         if (action == 'showEdit') {
             showEdit();
-            return;
-        }
-        if (action === 'reload') {
-            fetchList();
             return;
         }
         if (action === 'updatePackages') {
@@ -258,68 +270,37 @@
                 showConsole("Error: " + error);
             })
     };
+
+    let buttonActions={
+        reload: fetchList,
+        updateList: function(){startAction('updateList')},
+        updatePackages: function(){startAction('updatePackages')},
+        restart: function(){startAction('restart')},
+        showLog: showLog,
+        showEdit: showEdit,
+        closeOverlay: closeOverlayFromButton,
+        downloadLogOverlay: function(){window.location.href='/api/downloadLog';},
+        refreshLogOverlay: fillLog,
+        closeLogOverlay: closeOverlayFromButton,
+        downloadEditOverlay: function(){window.location.href='/api/downloadConfig';},
+        saveEditOverlay: saveConfig,
+        closeEditOverlay: closeOverlayFromButton,
+        showConsole: function(){showConsole();}
+    }
     window.addEventListener('load',function(){
         let title=document.getElementById('title');
         if (window.location.search.match(/title=no/)){
             if (title) title.style.display="none";
         }
-        let cb=document.getElementById('closeOverlay');
-        if (cb){
-            cb.addEventListener('click',function(){
-                closeWs();
-                let ov=document.getElementById('responseOverlay');
-                if (ov) ov.style.visibility='hidden';
-                showHideShowCb(true);
-            })
-        }
-        let clb=document.getElementById('closeLogOverlay');
-        if (clb){
-            clb.addEventListener('click',function(){
-                let ov=document.getElementById('logOverlay');
-                if (ov) ov.style.visibility='hidden';
-            })
-        }
-        clb=document.getElementById('refreshLogOverlay');
-        if (clb){
-            clb.addEventListener('click',function(){
-                fillLog();
-            })
-        }
-        clb=document.getElementById('downloadLogOverlay');
-        if (clb){
-            clb.addEventListener('click',function(){
-                window.location.href='/api/downloadLog';
-            })
-        }
-        let ecb=document.getElementById('closeEditOverlay');
-        if (ecb){
-            ecb.addEventListener('click',function(){
-                let ov=document.getElementById('editOverlay');
-                if (ov) ov.style.visibility='hidden';
-            })
-        }
-        ecb=document.getElementById('saveEditOverlay');
-        if (ecb){
-            ecb.addEventListener('click',function(){
-                if (! saveConfig()) return;
-                let ov=document.getElementById('editOverlay');
-                if (ov) ov.style.visibility='hidden';
-            }) 
-        }
-        let actionButtons=['refresh','updateList','updatePackages',
-            'restart','showLog','showEdit'];
-        actionButtons.forEach(function(bt){
-            let bel=document.getElementById(bt);
-            if (bel){
-                bel.addEventListener('click',function(ev){
-                    let action=ev.target.getAttribute('data-action');
-                    startAction(action);
-                })
-            }
-        })
-        let showCb=this.document.getElementById('showConsole');
-        if (showCb){
-            showCb.addEventListener('click',function(){showConsole();});
+        let buttons=document.querySelectorAll('button')
+        for (let i=0;i<buttons.length;i++){
+            let bt=buttons[i];
+            let handler=buttonActions[bt.getAttribute('id')]||
+                buttonActions[bt.getAttribute('name')];
+            if (handler){
+                bt.addEventListener('click',handler);
+            }    
+
         }
         flask=new CodeFlask('#editOverlay .overlayContent',{
             language: 'markup',
@@ -338,16 +319,11 @@
             }
             apiRequest(url)
             .then(function(data){
-                let buttons=document.querySelectorAll('.buttonFrame button');
+                let buttons=document.querySelectorAll('button.action');
                 for (let i=0;i<buttons.length;i++){
-                    if (!buttons[i].getAttribute('data-action')) continue;
-                    if (data.actionRunning){
-                        buttons[i].setAttribute('disabled','');
-                    }
-                    else{
-                        buttons[i].removeAttribute('disabled');
-                    }
+                    buttonEnable(buttons[i],! data.actionRunning);
                 }
+                buttonEnable('showConsole',data.actionRunning);
                 let actionDisplay=document.getElementById('runningAction');
                 if (actionDisplay){
                     if (data.actionRunning){
@@ -384,24 +360,18 @@
                         });
                     }
                 }
-                let logButton=document.getElementById('showLog');
-                if (logButton){
-                    if (data.logFile === 'read'){
-                        logButton.removeAttribute('disabled');
+                buttonEnable('showLog',data.logFile === 'read');
+                buttonEnable('showEdit',data.configFile === 'read' 
+                    || data.configFile === 'write');
+                if (flask){
+                    if (data.configFile !== 'write') {
+                        flask.enableReadonlyMode();
                     }
                     else{
-                        logButton.setAttribute('disabled','');
+                        flask.disableReadonlyMode();
                     }
-                }
-                let editButton=document.getElementById('showEdit');
-                if (editButton){
-                    if (data.configFile === 'read' || data.configFile === 'write'){
-                        editButton.removeAttribute('disabled');
-                    }
-                    else{
-                        editButton.setAttribute('disabled','');
-                    }
-                }
+
+                }    
                 if (lastUpdateSequence !== data.updateSequence){
                     lastUpdateSequence=data.updateSequence;
                     fetchList();

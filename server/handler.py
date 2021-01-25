@@ -201,6 +201,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       self.sendTextFile(state.getLogFile(),"avnav-%s.log"%
                         (datetime.datetime.now().strftime("%Y%m%d")))
       return
+    if request == 'downloadConfig':
+      state = self.server.getAvNavStatus()
+      self.sendTextFile(state.getConfigFile(),"avnav_server-%s.xml"%
+                        (datetime.datetime.now().strftime("%Y%m%d")))
+      return
     self.sendJsonResponse(self.getReturnData("unknown request %s"%request))
 
   def do_POST(self):
