@@ -2,6 +2,16 @@
   /*taken from prism coy theme
   /https://github.com/PrismJS/prism/blob/master/themes/prism-coy.css
   */
+
+pre.codeflask__pre.codeflask__flatten {
+    width: unset;
+}
+.codeflask.codeflask--has-line-numbers:before {
+  z-index: 4 !important;
+}
+.codeflask__lines{
+  z-index: 4 !important;
+}
   .token.comment,
   .token.block-comment,
   .token.prolog,
