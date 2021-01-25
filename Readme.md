@@ -88,9 +88,9 @@ The plugin consists of 2 parts:
 - an own service that runs by default on port 8085. <br>
   This service provides the described functions.
 
-During installation the service `avnavupdater` is created any you can control it with systemctl.  
+During installation the service `avnavupdater` is created and you can control it with systemctl.  
 Additionally a sudo configuration is created that will allow the user to handle all the necessary package actions.
-If the user _pi_  is available on the system, the service will run with this user. Otherwise it will run with the user avnav (that is used by AvNav if you install it on a "bare" linux system - not on the rapberry).
+If the user _pi_  is available on the system, the service will run with this user. Otherwise it will run with the user avnav (that is used by AvNav if you install it on a "bare" linux system - not on the raspberry).
 
 If you need to change the configuration of the service, there is already a template for your changes being created at
 `/etc/systemd/system/avnavupdater.service.d/override.conf`.
