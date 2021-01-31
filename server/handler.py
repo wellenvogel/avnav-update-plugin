@@ -131,7 +131,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
           if seekBytes > 0:
             f.seek(seekBytes)
         self.send_header("Content-Length", str(flen))
-        self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+        self.send_header("Last-Modified", self.date_time_string())
         self.end_headers()
         shutil.copyfileobj(f,self.wfile)
         self.wfile.close()
@@ -253,6 +253,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
       if os.path.exists(outfname):
         copyname=outfname + suffix
         shutil.copyfile(outfname,copyname)
+        logging.debug("copied config %s to %s",outfname,copyname)
+      logging.debug("updating config %s with len %d",outfname,dlen)
       os.replace(tmpfile,outfname)
     except Exception as e:
       try:
