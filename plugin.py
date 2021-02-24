@@ -65,7 +65,12 @@ class Plugin(object):
     self.updaterPort=None
     self.findError=None
     self.isConnected=False
+    self.startSequence=0
+    if hasattr(self.api,'registerRestart'):
+      self.api.registerRestart(self._apiRestart)
 
+  def _apiRestart(self):
+    self.startSequence+=1
 
   def _findServicePort(self):
     port=None
@@ -104,6 +109,7 @@ class Plugin(object):
     and writes them to the store every 10 records
     @return:
     """
+    startSequence=self.startSequence
     seq=0
     self.api.log("started")
     self.api.setStatus("INACTIVE","starting")
@@ -114,7 +120,7 @@ class Plugin(object):
     except Exception as e:
       self.api.setStatus("ERROR","unable to register user app: %s"%str(e))
       return
-    while True:
+    while startSequence == self.startSequence:
       self._findServicePort()
       if self.updaterPort:
         url = "http://localhost:%d" % self.updaterPort
