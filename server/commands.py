@@ -52,6 +52,7 @@ class Commands:
   UPDATE=['sudo','-n','apt-get','install','-y']
   UPDATE_POST=[
     ['sudo','-n','systemctl','daemon-reload'],
+    ['sudo','-n','update-ca-certificates','--fresh'],
     ['sudo','-n','systemctl','start','avnav']
   ]
   KNOWN_ACTIONS={

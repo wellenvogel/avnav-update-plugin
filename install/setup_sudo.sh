@@ -52,3 +52,7 @@ fi
 
 chown root $dfile
 chmod 644 $dfile
+
+update-ca-certificates --fresh
+ntpdate pool.ntp.org
+
