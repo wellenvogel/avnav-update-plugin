@@ -37,4 +37,5 @@ if [ ! -d "$homedir" ] ; then
 fi
 
 systemctl daemon-reload
-systemctl enable --now avnavupdater
+systemctl enable avnavupdater
+systemctl start avnavupdater || echo "starting not possible, try by hand"
