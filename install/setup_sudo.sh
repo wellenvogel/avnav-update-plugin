@@ -53,6 +53,11 @@ fi
 chown root $dfile
 chmod 644 $dfile
 
-update-ca-certificates --fresh
 ntpdate pool.ntp.org
+if [ $? = 0 ] ; then
+    update-ca-certificates --fresh
+else
+    echo "unable to reach time server, no update of certificates"    
+fi
+exit 0
 
