@@ -202,6 +202,10 @@ button {
     white-space: pre-line;
     position: relative;
 }
+#editOverlay .overlayContent{
+    padding: 0;
+    overflow-y: hidden;
+}
 
 #logOverlay .overlayContent{
     white-space: pre-line;
