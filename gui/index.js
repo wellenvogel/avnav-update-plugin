@@ -38,7 +38,7 @@
                     e.textContent=f;
                     d.appendChild(e);
                 });
-                listFrame.append(d)    
+                listFrame.appendChild(d)    
                 data.data.forEach(function(le){
                     d=document.createElement('tr');
                     d.classList.add('listElement');
