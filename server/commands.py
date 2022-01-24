@@ -45,7 +45,7 @@ class Commands:
   UPDATE_PRE=[
     ['sudo','-n','systemctl','stop','avnav'],
     ['sudo','-n','ntpdate','pool.ntp.org'],
-    ['sudo', '-n', 'apt-get', 'update'],
+    ['sudo', '-n', 'apt-get', '--allow-releaseinfo-change','update'],
     ['sudo', '-n', 'apt-get', 'install','-y','-f']
   ]
   ALLOWED_PREFIX='avnav'
@@ -59,7 +59,7 @@ class Commands:
       'updateList':[
         ['sudo','-n','systemctl','stop','avnav'],
         ['sudo', '-n', 'ntpdate', 'pool.ntp.org'],
-        ['sudo','-n','apt-get','update'],
+        ['sudo','-n','apt-get','--allow-releaseinfo-change','update'],
         ['sudo', '-n', 'systemctl', 'start', 'avnav']
         ],
       'restart':[['sudo','-n','systemctl','restart','avnav']],
