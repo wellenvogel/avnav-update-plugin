@@ -130,7 +130,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     http.server.HTTPServer.__init__(self,server_address,RequestHandlerClass,bind_and_activate)
     self.actionRunning=False
     self.currentAction=None
-    self.packageList=PackageList('avnav','avnav-raspi')
+    self.packageList=PackageList('avnav','avnav-raspi',blackList=['avnav-oesenc'])
     self.systemd=Systemd()
     self.lastAvNavState=None
     self.avNavState=AvNavState()

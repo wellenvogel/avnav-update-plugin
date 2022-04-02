@@ -36,9 +36,10 @@ class NV:
     return self.__dict__
 
 class PackageList:
-  def __init__(self,prefix,installedOnlyPrefix=None):
+  def __init__(self,prefix,installedOnlyPrefix=None,blackList=[]):
     self.prefix=prefix
     self.installedOnlyPrefix=installedOnlyPrefix
+    self.blackList=blackList
 
   @classmethod
   def state_str(cls,state):
@@ -86,6 +87,8 @@ class PackageList:
       if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
         if pkg.version is None or pkg.version == '':
           continue
+      if k in self.blackList:
+        continue  
       rtlist.append(pkg.dict())
     logging.debug("fetchPackageList: %s",str(rtlist))
     return rtlist
