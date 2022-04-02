@@ -29,7 +29,10 @@
 #USER# ALL=(root)NOPASSWD:/bin/systemctl restart avnav*
 #USER# ALL=(root)NOPASSWD:/bin/systemctl daemon-reload
 #USER# ALL=(root)NOPASSWD:/usr/bin/apt-get update
+#USER# ALL=(root)NOPASSWD:/usr/bin/apt-get --allow-releaseinfo-change update
 #USER# ALL=(root)NOPASSWD:/usr/bin/apt-get install avnav*
+#USER# ALL=(root)NOPASSWD:/usr/bin/apt-get install -y avnav*
 #USER# ALL=(root)NOPASSWD:/usr/bin/apt-get install -y -f
 #USER# ALL=(root)NOPASSWD:/usr/sbin/ntpdate
+#USER# ALL=(root)NOPASSWD:/usr/sbin/update-ca-certificates --fresh
 
