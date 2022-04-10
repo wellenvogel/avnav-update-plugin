@@ -115,8 +115,17 @@ class Plugin(object):
     self.api.setStatus("INACTIVE","starting")
     self.isConnected=False
     self.api.setStatus("STARTING", "started")
+    avnavversion=0
     try:
-      self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
+      avnavversion=self.api.getAvNavVersion()
+      avnavversion=re.sub('[^0-9]','',avnavversion)
+    except:
+      pass  
+    try:
+      if avnavversion >= 20220410:
+        self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater",preventConnectionLost=True)
+      else:
+        self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
     except Exception as e:
       self.api.setStatus("ERROR","unable to register user app: %s"%str(e))
       return
