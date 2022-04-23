@@ -55,7 +55,7 @@ chmod 644 $dfile
 
 ntpdate pool.ntp.org
 if [ $? = 0 ] ; then
-    update-ca-certificates --fresh
+    update-ca-certificates
 else
     echo "unable to reach time server, no update of certificates"    
 fi
