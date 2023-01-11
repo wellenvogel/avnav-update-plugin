@@ -22,15 +22,21 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
+import subprocess
 import logging
+import re
 
-import apt_pkg
-import apt.progress.base
+
 
 class NV:
   def __init__(self,**kwargs):
+    self.version=None
+    self.candidate=None
+    self.state=None
     for k,v in kwargs.items():
       self.__setattr__(k,v)
+  def set(self,n,v):
+    self.__setattr__(n,v)
 
   def dict(self):
     return self.__dict__
@@ -43,45 +49,48 @@ class PackageList:
 
   @classmethod
   def state_str(cls,state):
-    if state in [apt_pkg.CURSTATE_CONFIG_FILES, apt_pkg.CURSTATE_HALF_CONFIGURED, apt_pkg.CURSTATE_HALF_INSTALLED]:
+    if state in ["(none)"]:
       return "invalid"
-    if state in [apt_pkg.CURSTATE_INSTALLED]:
-      return "installed"
-    return "unknown"
+    return "installed"
+  
 
-
+  PATTERNS={
+    "version":"^  *Installed: *",
+    "candidate":"^  *Candidate: *"
+  }
   def fetchPackages(self):
-    apt_pkg.init_config()
-    apt_pkg.init_system()
-    cache = apt_pkg.Cache(progress=None)
-    depcache =apt_pkg.DepCache(cache)
-    rt={}
-    for pkg in cache.packages:
-      if pkg.name.startswith(self.prefix):
-        cand = depcache.get_candidate_ver(pkg)
-        candVersion=None
-        current=pkg.current_ver.ver_str if pkg.current_ver else ''
-        if cand and cand.ver_str != current:
-          candVersion=cand.ver_str
-        nv=NV(name=pkg.name,state=self.state_str(pkg.current_state),version=current,candidate=candVersion)
-        last=rt.get(pkg.name)
-        if last is not None:
-          if last.state != 'installed' and nv.state == 'installed':
-            last.state='installed'
-          if last.candidate is None and nv.candidate is not None:
-            last.candidate=nv.candidate
-          elif last.candidate is not None and nv.candidate is not None:
-            if last.candidate != nv.candidate:
-              logging.info("found 2 candidate versions for %s: %s and %s",pkg.name,last.candidate,nv.candidate)
-              try:
-                if nv.candidate > last.candidate:
-                  last.candidate=nv.candidate
-              except Exception as e:
-                pass
-          if last.version == last.candidate:
-            last.candidate=None
-        else:
-          rt[pkg.name]=nv
+    CMD=["apt-cache","policy",self.prefix+"*"]
+    res=subprocess.run(CMD,capture_output=True,timeout=10)
+    if res.returncode != 0:
+      raise Exception("unable to run %s"%" ".join(CMD))
+    rt={}  
+    pkg=None
+    pkgData=NV()  
+    for line in res.stdout.splitlines():
+      line=line.decode("utf-8",errors="ignore")
+      if re.match("^"+self.prefix+".*:",line):
+        if pkg is not None:
+          rt[pkg]=pkgData
+        pkg=re.sub(":.*","",line)
+        pkgData=NV(name=pkg)
+      else:
+        if pkg is None:
+          continue
+        for key,pattern in self.PATTERNS.items():
+          if (re.match(pattern,line)):
+            v=re.sub(pattern,"",line)
+            pkgData.set(key,v)
+    if pkg is not None:
+      rt[pkg]=pkgData
+    for pkg in rt.keys():
+      version=rt[pkg].version
+      if version is None or version == "(none)":
+        rt[pkg].state="invalid"
+        rt[pkg].version=None
+      else:
+        rt[pkg].state="installed"
+      if rt[pkg].version == rt[pkg].candidate:
+        rt[pkg].candidate=None  
     rtlist=[]
     for k,pkg in rt.items():
       if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
@@ -92,3 +101,9 @@ class PackageList:
       rtlist.append(pkg.dict())
     logging.debug("fetchPackageList: %s",str(rtlist))
     return rtlist
+
+
+if __name__ == '__main__':
+  pl=PackageList("avnav","avnav-raspi",blackList=['avnav-oesenc'])
+  lst=pl.fetchPackages()
+  print(lst)

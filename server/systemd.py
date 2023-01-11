@@ -24,7 +24,7 @@
 ###############################################################################
 import logging
 
-import pydbus
+import dbus
 
 class UnitInfo:
   def __init__(self,name,status,commandline):
@@ -34,10 +34,10 @@ class UnitInfo:
 
 class Systemd:
   def __init__(self):
-    self.bus = pydbus.SystemBus()
+    self.bus = dbus.SystemBus()
 
   def _getObject(self,path):
-    return self.bus.get(
+    return self.bus.get_object(
         'org.freedesktop.systemd1',
         path
     )
@@ -53,19 +53,20 @@ class Systemd:
     systemd= self._getObject('/org/freedesktop/systemd1')
     if systemd is None:
       return rt
-    manager=systemd['org.freedesktop.systemd1.Manager']
+    manager=dbus.Interface(systemd,'org.freedesktop.systemd1.Manager')
 
     if units is None or not isinstance(units,list):
       return rt
     try:
       for unit in manager.ListUnits():
-        name=unit[0]
-        state=unit[4]
+        name=str(unit[0])
+        state=str(unit[4])
         if name in units:
           cmd=None
           try:
             extended = self._getObject(unit[6])
-            cmd=extended.ExecStart
+            properties=dbus.Interface(extended,dbus_interface="org.freedesktop.DBus.Properties")
+            cmd=properties.Get("org.freedesktop.systemd1.Service","ExecStart")
             logging.debug("extended info for %s: %s,cmd=%s",name,str(extended),str(cmd[0][1]))
           except:
             pass
@@ -74,3 +75,9 @@ class Systemd:
       logging.error("Systemd: unable to list units: %s",str(e))
       raise
     return rt
+
+
+if __name__ == '__main__':
+  sd=Systemd()
+  ui=sd.getUnitInfo(['avnav.service'])
+  print("unitInfo:",ui)   

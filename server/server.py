@@ -25,6 +25,7 @@
 ###############################################################################
 import getopt
 import http.server
+from itertools import groupby
 import logging.handlers
 import os
 import socketserver
@@ -32,6 +33,8 @@ import sys
 import threading
 import time
 import traceback
+import gc
+import tracemalloc
 
 from commands import Commands
 from handler import Handler
@@ -138,6 +141,7 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
     self.networkChecker=NetworkChecker('www.google.de',checkInterval=20)
     self.networkChecker.available()
     self.console=SimpleQueue(500)
+    self.daemon_threads=True
 
   def handle_error(self, request, client_address):
     estr=traceback.format_exc()
@@ -213,9 +217,34 @@ class OurHTTPServer(socketserver.ThreadingMixIn,http.server.HTTPServer):
 def usage():
   print("usage: %s -p port [-l logdir] -h" % (sys.argv[0]))
 
+
+def monitor():
+  tracemalloc.start(10)
+  gc.set_debug(gc.DEBUG_LEAK)
+  filters=[tracemalloc.Filter(False, tracemalloc.__file__),tracemalloc.Filter(False,__file__,lineno=231),tracemalloc.Filter(False,__file__,lineno=236)] 
+  snapshot=tracemalloc.take_snapshot().filter_traces(filters)
+  lastSize=0
+  while True:
+    time.sleep(10)
+    gc.collect()
+    current=tracemalloc.take_snapshot().filter_traces(filters)
+    stats=current.compare_to(snapshot,"lineno",cumulative=True)
+    size,peak=tracemalloc.get_traced_memory()
+    tracemalloc.reset_peak()
+    print("TRACEMALLOC, current=%d (changed=%d), peak=%d"%(size,size-lastSize,peak))
+    lastSize=size
+    overall=0
+    for x in stats:
+      if x.size_diff != 0:
+        overall+=x.size_diff
+        print("SizeDiff=%d,Traceback=%s"%(x.size_diff,str(x.traceback)))
+    print("TRACEMALLOC diff=%d"%overall)    
+    snapshot=current  
+
+
 if __name__ == '__main__':
   try:
-    optlist,args=getopt.getopt(sys.argv[1:],'p:l:dht:')
+    optlist,args=getopt.getopt(sys.argv[1:],'p:l:dht:m')
   except getopt.GetoptError as err:
     print(err)
     usage()
@@ -224,6 +253,7 @@ if __name__ == '__main__':
   port=None
   loglevel=logging.INFO
   useHome=False
+  runTmalloc=False
   for o,a in optlist:
     if o == '-p':
       port=int(a)
@@ -235,6 +265,8 @@ if __name__ == '__main__':
       useHome=True
     elif o == '-t':
       testDir=a
+    elif o == '-m':
+      runTmalloc=True  
 
   if port is None:
     print("missing parameter port")
@@ -260,6 +292,11 @@ if __name__ == '__main__':
   handler.doRollover()
   logging.basicConfig(handlers=[handler], level=loglevel, format='%(asctime)s-%(process)d: %(message)s')
   logging.info("AvNav updater started at port %d"%port)
+  if runTmalloc:
+    t=threading.Thread(target=monitor)
+    t.daemon=True
+    t.start()
+
   try:
     server=OurHTTPServer(('0.0.0.0',port), WSConsole)
     server.serve_forever()

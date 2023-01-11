@@ -142,6 +142,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     self.end_headers()
 
   def do_GET(self):
+    self.close_connection = True
     if not self.path.startswith("/api"):
       return super().do_GET()
     (request,query)=self.pathQueryFromUrl(self.path)
