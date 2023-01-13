@@ -30,6 +30,7 @@ After=syslog.target network.target
 User=pi
 Environment=PORT=8085
 Environment=LOGDIR=avnavupdate
+Environment=LANG=C
 ExecStart=/usr/bin/python3 /usr/lib/avnav/plugins/update/server/server.py -p ${PORT} -l ${LOGDIR} -h
 KillMode=control-group
 Restart=always
