@@ -29,7 +29,7 @@ import time
 import urllib.parse
 from http import HTTPStatus
 from urllib.request import urlopen
-import pydbus
+import dbus
 
 
 class Plugin(object):
@@ -77,15 +77,16 @@ class Plugin(object):
     try:
       BUSNAME = 'org.freedesktop.systemd1'
       UNITNAME = 'avnavupdater.service'
-      bus = pydbus.SystemBus()
-      systemd = bus.get(
+      bus = dbus.SystemBus()
+      systemd = bus.get_object(
         BUSNAME,
         '/org/freedesktop/systemd1'
       )
-      manager = systemd['org.freedesktop.systemd1.Manager']
+      manager = dbus.Interface(systemd,'org.freedesktop.systemd1.Manager')
       unit = manager.GetUnit(UNITNAME)
-      extended = bus.get(BUSNAME, unit)
-      env=extended.Environment
+      extended = bus.get_object(BUSNAME, unit)
+      properties=dbus.Interface(extended,dbus_interface="org.freedesktop.DBus.Properties")
+      env=properties.Get("org.freedesktop.systemd1.Service","Environment")
       for e in env:
         nv=e.split("=",2)
         if len(nv) > 1 and nv[0] == 'PORT':
