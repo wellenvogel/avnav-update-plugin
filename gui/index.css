@@ -81,6 +81,10 @@ td, th {
     margin-bottom: 0.5em;
 }
 
+.disabledPackage {
+    opacity: 0.6;
+}
+
 .buttonFrame {
     display: flex;
     flex-direction: column;
@@ -101,11 +105,16 @@ button {
 
 
 
-.currentState, .networkState, .currentAction {
+.currentState, .networkState, .currentAction, .showDisabled {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     
+}
+.row{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
 .currentState{
     border-top: 1px solid grey;
@@ -152,7 +161,7 @@ button {
     margin-left: auto;
     margin-right: auto;
 }
-#networkUpdate {
+#networkUpdate, #showDisabled {
     margin-left: auto;
     margin-right: auto;
 }

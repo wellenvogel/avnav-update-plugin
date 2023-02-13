@@ -23,6 +23,12 @@
       </table>
       <div class="rightFrame">
         <div class="statusFrame">
+          <div class="showDisabled">
+          <div class="row">
+              <span class="label">ShowDisabled</span>
+              <input type="checkbox" id="showDisabled"/>
+          </div>
+        </div>
           <div class="currentAction">
             <span class="label">Running Action</span>
             <div id="runningAction">
@@ -35,10 +41,14 @@
             <span class="statusText" id="avnavStatusText"></span>
           </div>
           <div class="networkState">
-              <span class="label">Internet</span>
-              <span id="networkStatus" class="statusText unknown"></span>
-              <span class="label">Auto Update</span>
-              <input type="checkbox" id="networkUpdate"/>
+              <div class="row">
+                <span class="label">Internet</span>
+                <span id="networkStatus" class="statusText unknown"></span>
+              </div>
+              <div class="row">
+                <span class="label">Auto Update</span>
+                <input type="checkbox" id="networkUpdate"/>
+              </div>
           </div>  
         </div>
         <div class="buttonFrame">

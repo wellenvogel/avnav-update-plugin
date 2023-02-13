@@ -22,7 +22,7 @@
             });
         });
     }
-    let fetchList=function(){
+    let fetchList=function(){networkUpdate
         let listFrame=document.getElementById('infoFrame');
         if (! listFrame) return;
         listFrame.innerHTML='<div class="updateRunning blink">Reading Packages...</div>';
@@ -42,6 +42,10 @@
                 data.data.forEach(function(le){
                     d=document.createElement('tr');
                     d.classList.add('listElement');
+                    if (le.disabled){
+                        d.classList.add('disabledPackage');
+                        le.state="disabled";
+                    }
                     fields.forEach(function(f){
                         let e=document.createElement('td');
                         e.classList.add(f);
@@ -52,15 +56,25 @@
                     e=document.createElement('input');
                     e.setAttribute('type','checkbox');
                     e.setAttribute('data-name',le.name);
-                    e.checked=!!le.candidate && !!le.version;
+                    e.checked=!!le.candidate && !!le.version && !le.disabled;
                     td.appendChild(e);
                     d.appendChild(td);
                     listFrame.appendChild(d);
                 })
+                hideShowDisabled();
             })
             .catch(function(error){
                 alert("unable to fetch info: "+error);
             })
+    }
+
+    let hideShowDisabled=function(){
+        let cb=document.getElementById('showDisabled');
+        let disabledPackages=document.querySelectorAll('.disabledPackage');
+        for (let i=0;i<disabledPackages.length;i++){
+            if (cb.checked) disabledPackages[i].style.display='table-row';
+            else disabledPackages[i].style.display='none';
+        }
     }
 
     let closeWs=function(){
@@ -371,7 +385,9 @@
                         flask.disableReadonlyMode();
                     }
 
-                }    
+                }
+                let sd=document.getElementById('showDisabled');
+                if (sd) sd.addEventListener('change',hideShowDisabled)    
                 if (lastUpdateSequence !== data.updateSequence){
                     lastUpdateSequence=data.updateSequence;
                     fetchList();

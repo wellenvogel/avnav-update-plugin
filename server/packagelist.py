@@ -35,6 +35,7 @@ class NV:
     self.candidate=None
     self.state=None
     self.disabled=False
+    self.plugin=None
     for k,v in kwargs.items():
       self.__setattr__(k,v)
   def set(self,n,v):
@@ -42,6 +43,11 @@ class NV:
 
   def dict(self):
     return self.__dict__
+
+class PInfo:
+  def __init__(self,plugin,disabled=False) -> None:
+    self.plugin=plugin
+    self.disabled=disabled
 
 class PackageList:
   def __init__(self,prefix,installedOnlyPrefix=None,blackList=[]):
@@ -67,41 +73,38 @@ class PackageList:
     except:
       return name
 
-  def getDisabledPackages(self):
+  def getPluginPackages(self):
     script=os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir,os.pardir,os.pardir,"plugin.sh"))
     logging.debug("scriptPath=%s",script)
-    if not os.path.exists(script):
-      return []
-    res=subprocess.run([script,"list"],capture_output=True,shell=True)
-    if res.returncode != 0:
-      logging.error("execution of %s returned %d"%(script,res.returncode))
-      return []
-    plugins=set()
-    for line in res.stdout.splitlines(): 
-      line=line.decode("utf-8",errors="ignore")
-      parts=line.split("=")
-      if len(parts) != 2:
-        continue
-      if parts[1].rstrip().lstrip() == "1":
-        plugins.add(parts[0].rstrip())
-    if len(plugins) < 1:
-      return []
+    disabledPlugins=set()
+    if os.path.exists(script):
+      cmd=[script,"list"]  
+      res=subprocess.run(cmd,capture_output=True,shell=False)
+      if res.returncode != 0:
+        logging.error("execution of %s returned %d"%(" ".join(cmd),res.returncode))
+      else:
+        for line in res.stdout.splitlines(): 
+          line=line.decode("utf-8",errors="ignore")
+          parts=line.split("=")
+          if len(parts) != 2:
+            continue
+          if parts[1].rstrip().lstrip() == "1":
+            disabledPlugins.add(parts[0].rstrip())
     cmd=["dpkg-query","-W","-f", "${Package}:${avnav-plugin}\n", self.prefix+"*"]
     res=subprocess.run(cmd,capture_output=True)
     if res.returncode != 0:
       logging.error("execution of %s returned %d"%(" ".join(cmd),res.returncode))
-      return []
-    rt=[]  
+      return {}
+    rt={}  
     for line in res.stdout.splitlines(): 
       line=line.decode("utf-8",errors="ignore")
       parts=line.split(":")
-      if len(parts) != 2:
+      if len(parts) != 2 or parts[1] == "":
         continue 
       logging.debug("package with plugin description: %s"%line)
       varName=self.piNameToVar(parts[1])
-      if varName in plugins:
-        rt.append(parts[0])  
-    logging.debug("disabled packages=%s"%",".join(rt))    
+      rt[parts[0]]=PInfo(parts[1],varName in disabledPlugins)
+    logging.debug("plugins=%s"%str(rt))    
     return rt    
 
     
@@ -129,7 +132,7 @@ class PackageList:
             pkgData.set(key,v)
     if pkg is not None:
       rt[pkg]=pkgData
-    disabled=self.getDisabledPackages()  
+    plugins=self.getPluginPackages()  
     for pkg in rt.keys():
       version=rt[pkg].version
       if version is None or version == "(none)":
@@ -139,7 +142,10 @@ class PackageList:
         rt[pkg].state="installed"
       if rt[pkg].version == rt[pkg].candidate:
         rt[pkg].candidate=None
-      rt[pkg].disabled=True if pkg in disabled else False    
+      piInfo=plugins.get(pkg)
+      if piInfo is not None:
+        rt[pkg].plugin=piInfo.plugin
+        rt[pkg].disabled=piInfo.disabled
     rtlist=[]
     for k,pkg in rt.items():
       if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
