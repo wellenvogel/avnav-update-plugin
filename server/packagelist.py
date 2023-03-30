@@ -45,9 +45,10 @@ class NV:
     return self.__dict__
 
 class PInfo:
-  def __init__(self,plugin,disabled=False) -> None:
-    self.plugin=plugin
-    self.disabled=disabled
+  def __init__(self) -> None:
+    self.plugin=None
+    self.disabled=None # '0' or '1'
+    self.hidden=False
 
 class PackageList:
   def __init__(self,prefix,installedOnlyPrefix=None,blackList=[]):
@@ -73,10 +74,15 @@ class PackageList:
     except:
       return name
 
-  def getPluginPackages(self):
+  def getPluginPackages(self,candidates):
+    '''
+    fetch packages that have the avnav-plugin metadata set
+    set their disabled state from a query of avnav (plugin.sh) to list hidden plugins
+    set their hidden state from the avnav-hidden attribute   
+    '''
     script=os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir,os.pardir,os.pardir,"plugin.sh"))
     logging.debug("scriptPath=%s",script)
-    disabledPlugins=set()
+    disabledPlugins={}
     if os.path.exists(script):
       cmd=[script,"list"]  
       res=subprocess.run(cmd,capture_output=True,shell=False)
@@ -88,29 +94,51 @@ class PackageList:
           parts=line.split("=")
           if len(parts) != 2:
             continue
-          if parts[1].rstrip().lstrip() == "1":
-            disabledPlugins.add(parts[0].rstrip())
-    cmd=["dpkg-query","-W","-f", "${Package}:${avnav-plugin}\n", self.prefix+"*"]
-    res=subprocess.run(cmd,capture_output=True)
+          disabledPlugins[parts[0].rstrip()]=parts[1].rstrip().lstrip()
+    cmd=["apt-cache","show"]+candidates
+    res=subprocess.run(cmd,capture_output=True,timeout=20)
     if res.returncode != 0:
       logging.error("execution of %s returned %d"%(" ".join(cmd),res.returncode))
       return {}
-    rt={}  
+    rt={}
+    package=None  
     for line in res.stdout.splitlines(): 
       line=line.decode("utf-8",errors="ignore")
-      parts=line.split(":")
-      if len(parts) != 2 or parts[1] == "":
+      parts=re.split(": *",line)
+      if len(parts) != 2:
         continue 
-      logging.debug("package with plugin description: %s"%line)
-      varName=self.piNameToVar(parts[1])
-      rt[parts[0]]=PInfo(parts[1],varName in disabledPlugins)
-    logging.debug("plugins=%s"%str(rt))    
-    return rt    
+      if parts[0] == 'Package':
+        package=parts[1]
+        rt[package]=PInfo()
+        continue
+      if package is None or rt.get(package) is None:
+        continue
+      if parts[0] == 'avnav-plugin':
+        logging.debug("package %s with plugin description: %s"%(package,parts[1]))
+        varName=self.piNameToVar(parts[1])
+        rt[package].plugin=varName
+        disabledState=disabledPlugins.get(varName)
+        rt[package].disabled=disabledState
+        continue
+      if parts[0] == 'avnav-hidden':
+        rt[package].hidden=True
+    pi={}
+    for k,v in rt.items():
+      if v.plugin is None:
+        continue
+      pi[k]=v    
+      #finally set the hidden state:
+      #if no disabled state is set (neither explicitly disabled nor explicitly enabled) the state from the 
+      #hidden info from the metadata will win
+      if pi[k].disabled is not None:
+        pi[k].hidden = pi[k].disabled == '1'
+    logging.debug("plugins=%s"%str(pi))    
+    return pi    
 
     
   def fetchPackages(self):
     CMD=["apt-cache","policy",self.prefix+"*"]
-    res=subprocess.run(CMD,capture_output=True,timeout=10)
+    res=subprocess.run(CMD,capture_output=True,timeout=20)
     if res.returncode != 0:
       raise Exception("unable to run %s"%" ".join(CMD))
     rt={}  
@@ -132,7 +160,7 @@ class PackageList:
             pkgData.set(key,v)
     if pkg is not None:
       rt[pkg]=pkgData
-    plugins=self.getPluginPackages()  
+    plugins=self.getPluginPackages(list(rt.keys()))  
     for pkg in rt.keys():
       version=rt[pkg].version
       if version is None or version == "(none)":
@@ -145,7 +173,7 @@ class PackageList:
       piInfo=plugins.get(pkg)
       if piInfo is not None:
         rt[pkg].plugin=piInfo.plugin
-        rt[pkg].disabled=piInfo.disabled
+        rt[pkg].disabled=piInfo.hidden
     rtlist=[]
     for k,pkg in rt.items():
       if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):

@@ -27,6 +27,7 @@ import subprocess
 import threading
 import time
 import traceback
+import os
 
 
 class Commands:
@@ -98,6 +99,9 @@ class Commands:
         commandList=[]
         commandList.extend(self.UPDATE_PRE)
         commandList.append(self.UPDATE+parameters)
+        syncScript=os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir,os.pardir,os.pardir,"plugin.sh"))
+        if os.path.exists(syncScript):
+          commandList.append(['sudo','-n',syncScript,'sync']+parameters)
         commandList.extend(self.UPDATE_POST)
         self.commandList=commandList
       else:
