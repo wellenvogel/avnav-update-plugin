@@ -28,7 +28,7 @@ import threading
 import time
 import traceback
 import os
-
+from packagelist import PackageList
 
 class Commands:
   def __init__(self,stdoutLogger,stderrLogger=None,finishCallback=None):
@@ -67,6 +67,20 @@ class Commands:
       'updatePackages':[]
        }
   UPDATE_ACTIONS=['updateList','updatePackages']
+
+  def _syncHiddenState(self,packages):
+    script=PackageList.getPluginScript()
+    if not os.path.exists(script):
+      return
+    configured=PackageList.getPluginHiddenState()
+    cmd=['dpkg','-W','-f','${Package}:${avnav-plugin}:${avnav-hidden}\n']+packages  
+    res=subprocess.run(cmd,capture_output=True,shell=False)
+    if res.returncode != 0:
+      logging.error("execution of %s returned %d"%(" ".join(cmd),res.returncode))
+      return
+    else:
+      for line in res.stdout.splitlines(): 
+        line=line.decode("utf-8",errors="ignore")
   def runAction(self,action,parameters=None,startcallback=None):
     '''
     start execution of an action
@@ -101,7 +115,7 @@ class Commands:
         commandList.append(self.UPDATE+parameters)
         syncScript=os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir,os.pardir,os.pardir,"plugin.sh"))
         if os.path.exists(syncScript):
-          commandList.append(['sudo','-n',syncScript,'sync']+parameters)
+          commandList.append(['sudo','-n',os.path.join(os.path.dirname(__file__),'sync.sh')]+parameters)
         commandList.extend(self.UPDATE_POST)
         self.commandList=commandList
       else:

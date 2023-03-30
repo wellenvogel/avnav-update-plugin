@@ -34,6 +34,8 @@ contents:
   dst: /usr/lib/avnav/plugins/update/gui/lib
 - src: ./server/*py
   dst: /usr/lib/avnav/plugins/update/server
+- src: ./server/*sh
+  dst: /usr/lib/avnav/plugins/update/server  
 - src: ./install/setup_sudo.sh
   dst: /usr/lib/avnav/plugins/update/install/setup_sudo.sh
 - src: ./install/avnavupdate

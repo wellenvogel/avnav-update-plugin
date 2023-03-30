@@ -68,20 +68,22 @@ class PackageList:
     "candidate":"^  *Candidate: *"
   }
 
+  @classmethod
   def piNameToVar(self,name):
     try:
       return re.sub("[^0-9a-zA-Z]","",name).upper()
     except:
       return name
 
-  def getPluginPackages(self,candidates):
-    '''
-    fetch packages that have the avnav-plugin metadata set
-    set their disabled state from a query of avnav (plugin.sh) to list hidden plugins
-    set their hidden state from the avnav-hidden attribute   
-    '''
+  @classmethod
+  def getPluginScript(cls):
     script=os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir,os.pardir,os.pardir,"plugin.sh"))
     logging.debug("scriptPath=%s",script)
+    return script  
+  
+  @classmethod  
+  def getPluginHiddenState(cls):
+    script=cls.getPluginScript()
     disabledPlugins={}
     if os.path.exists(script):
       cmd=[script,"list"]  
@@ -95,6 +97,15 @@ class PackageList:
           if len(parts) != 2:
             continue
           disabledPlugins[parts[0].rstrip()]=parts[1].rstrip().lstrip()
+    return disabledPlugins
+
+  def getPluginPackages(self,candidates):
+    '''
+    fetch packages that have the avnav-plugin metadata set
+    set their disabled state from a query of avnav (plugin.sh) to list hidden plugins
+    set their hidden state from the avnav-hidden attribute   
+    '''
+    disabledPlugins=self.getPluginHiddenState()
     cmd=["apt-cache","show"]+candidates
     res=subprocess.run(cmd,capture_output=True,timeout=20)
     if res.returncode != 0:
