@@ -12,7 +12,7 @@ priority: "extra"
 depends:
 - avnav
 - python3-dbus
-- ntpdate
+- "ntpdate | ntpsec-ntpdate"
 - sudo
 maintainer: "Andreas Vogel <andreas@wellenvogel.de>"
 description: |
