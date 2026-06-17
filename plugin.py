@@ -121,11 +121,25 @@ class Plugin(object):
       avnavversion=self.api.getAvNavVersion()
       avnavversion=re.sub('[^0-9]','',avnavversion)
     except:
-      pass  
+      pass
+    hasRegistered=False  
     try:
-      if avnavversion >= 20220410:
+      if avnavversion >= 20260617:
+        try:
+          self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),
+                                 title="AvNav Updater",
+                                 page='serverpage',
+                                 preventConnectionLost=True,
+                                 shortText='Update',
+                                 longText='AvNav Updater',
+                                 name='ui')
+          hasRegistered=True
+        except:
+          pass
+      elif avnavversion >= 20220410:
         self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater",preventConnectionLost=True)
-      else:
+        hasRegistered=True
+      if not hasRegistered:
         self.api.registerUserApp(self.api.getBaseUrl()+"/api/index",os.path.join('gui','icons','system_update.svg'),title="AvNav Updater")
     except Exception as e:
       self.api.setStatus("ERROR","unable to register user app: %s"%str(e))
