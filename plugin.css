@@ -1,0 +1,16 @@
+.icon-legacy{
+    --plugin-updater-icon: url('gui/icons/system_update.svg')
+}
+.icon-default{
+    --plugin-updater-icon: url('gui/icons/system_update_new.svg')
+}
+/*
+set the icon url for the plugin running as user plugin
+and as system plugin
+*/
+.button.user-updater-ui .icon {
+    background-image: var(--plugin-updater-icon);
+}
+.button.system-updater-ui .icon {
+    background-image: var(--plugin-updater-icon);
+}
