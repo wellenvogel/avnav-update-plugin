@@ -35,6 +35,9 @@ text {
 .error{
     background-image: radial-gradient(rgba(240, 10, 10,1), rgba(240, 10, 10, 0.6),transparent);
 }
+.off{
+    background-image: radial-gradient(rgb(240, 217, 10), rgba(240, 217, 10, 0.6),transparent);
+}
 .title {
     height: 4em;
     background-color: rgb(84, 110, 122);
@@ -153,7 +156,7 @@ button {
     color:green;
 }
 
-#networkStatus {
+#networkStatus, #betaStatus {
     display: block;
     width: 1em;
     height: 1em;

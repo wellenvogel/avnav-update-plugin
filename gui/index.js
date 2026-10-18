@@ -28,6 +28,8 @@
         listFrame.innerHTML='<div class="updateRunning blink">Reading Packages...</div>';
         apiRequest('fetchList')
             .then(function(data){
+                let betaStatus=document.getElementById('betaStatus');
+                let betaStatusValue='unknown';
                 listFrame.innerHTML='';
                 let fields=['name','state','version','candidate'];
                 let d=document.createElement('tr');
@@ -40,6 +42,12 @@
                 });
                 listFrame.appendChild(d)    
                 data.data.forEach(function(le){
+                    if (le.beta == 'active'){
+                        betaStatusValue='ok';
+                    }
+                    if (le.beta == 'available' && betaStatusValue !== 'ok'){
+                        betaStatusValue='off';
+                    }
                     d=document.createElement('tr');
                     d.classList.add('listElement');
                     if (le.disabled){
@@ -62,6 +70,9 @@
                     listFrame.appendChild(d);
                 })
                 hideShowDisabled();
+                betaStatus.classList="statusText "+betaStatusValue;
+                document.getElementById('enableBeta').setAttribute('data-disabled', (betaStatusValue !='off'));
+                document.getElementById('disableBeta').setAttribute('data-disabled', (betaStatusValue != 'ok'));
             })
             .catch(function(error){
                 alert("unable to fetch info: "+error);
@@ -110,7 +121,8 @@
             bt=document.getElementById(id);
         }
         if (! bt) return;
-        if (enable){
+        let overwrite=bt.getAttribute('data-disabled');
+        if (enable && ! (overwrite === 'true')){
             bt.removeAttribute('disabled');
         }
         else{
@@ -288,6 +300,8 @@
     let buttonActions={
         reload: fetchList,
         updateList: function(){startAction('updateList')},
+        enableBeta: function(){startAction('enableBeta')},
+        disableBeta: function(){startAction('disableBeta')},
         updatePackages: function(){startAction('updatePackages')},
         restart: function(){startAction('restart')},
         showLog: showLog,

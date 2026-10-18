@@ -26,8 +26,11 @@ import subprocess
 import logging
 import re
 import os
+import sys
 
-
+APT_DIR="/etc/apt/sources.list.d"
+BETA_ACTIVE="extra-beta.sources"
+BETA_INACTIVE=BETA_ACTIVE+".disabled"
 
 class NV:
   def __init__(self,**kwargs):
@@ -146,8 +149,25 @@ class PackageList:
     logging.debug("plugins=%s"%str(pi))    
     return pi    
 
+  def getBetaPattern(self):
+    pattern=None
+    for f in [BETA_ACTIVE,BETA_INACTIVE]:
+      if os.path.exists(os.path.join(APT_DIR,f)):
+        logging.debug("found beta file: %s"%(f))
+        try:
+          with open(os.path.join(APT_DIR,f),"r") as wf:
+            for line in wf:
+              line=line.strip()
+              if line.startswith("URIs"):
+                pattern=re.sub("^URIs: *","",line)
+                logging.debug("found beta pattern: %s"%(pattern))
+        except Exception as e:
+          logging.error("error reading beta pattern from %s: %s"%(f,str(e)))
+        break
+    return pattern
     
   def fetchPackages(self):
+    betaPattern=self.getBetaPattern()
     CMD=["apt-cache","policy",self.prefix+"*"]
     res=subprocess.run(CMD,capture_output=True,timeout=20)
     if res.returncode != 0:
@@ -161,7 +181,7 @@ class PackageList:
         if pkg is not None:
           rt[pkg]=pkgData
         pkg=re.sub(":.*","",line)
-        pkgData=NV(name=pkg)
+        pkgData=NV(name=pkg,beta='unavailable' if betaPattern is None else 'available')
       else:
         if pkg is None:
           continue
@@ -169,6 +189,8 @@ class PackageList:
           if (re.match(pattern,line)):
             v=re.sub(pattern,"",line)
             pkgData.set(key,v)
+        if betaPattern is not None and betaPattern in line:
+          pkgData.beta='active'
     if pkg is not None:
       rt[pkg]=pkgData
     plugins=self.getPluginPackages(list(rt.keys()))  
@@ -198,6 +220,8 @@ class PackageList:
 
 
 if __name__ == '__main__':
-  pl=PackageList("avnav","avnav-raspi",blackList=['avnav-oesenc'])
+  if len(sys.argv) > 1:
+    logging.basicConfig(level=int(sys.argv[1]))
+  pl=PackageList("avnav","avnav-raspi*",blackList=['avnav-oesenc'])
   lst=pl.fetchPackages()
   print(lst)

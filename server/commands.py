@@ -28,7 +28,10 @@ import threading
 import time
 import traceback
 import os
-from packagelist import PackageList
+from packagelist import PackageList,APT_DIR,BETA_ACTIVE,BETA_INACTIVE
+
+BETA_ACTIVE_PATH=os.path.join(APT_DIR,BETA_ACTIVE)
+BETA_INACTIVE_PATH=os.path.join(APT_DIR,BETA_INACTIVE)
 
 class Commands:
   def __init__(self,stdoutLogger,stderrLogger=None,finishCallback=None):
@@ -56,17 +59,22 @@ class Commands:
     ['sudo','-n','update-ca-certificates','--fresh'],
     ['sudo','-n','systemctl','start','avnav']
   ]
-  KNOWN_ACTIONS={
-      'updateList':[
+  UPDATE_LIST=[
         ['sudo','-n','systemctl','stop','avnav'],
         ['sudo', '-n', 'ntpdate', 'pool.ntp.org'],
         ['sudo','-n','apt-get','--allow-releaseinfo-change','update'],
         ['sudo', '-n', 'systemctl', 'start', 'avnav']
-        ],
+        ]
+  KNOWN_ACTIONS={
+      'updateList':UPDATE_LIST,
       'restart':[['sudo','-n','systemctl','restart','avnav']],
+      'enableBeta':[
+        ['sudo','-n','mv', BETA_INACTIVE_PATH, BETA_ACTIVE_PATH],
+      ] + UPDATE_LIST,
+      'disableBeta':[['sudo','-n','mv', BETA_ACTIVE_PATH, BETA_INACTIVE_PATH]]+UPDATE_LIST,
       'updatePackages':[]
        }
-  UPDATE_ACTIONS=['updateList','updatePackages']
+  UPDATE_ACTIONS=['updateList','updatePackages','enableBeta','disableBeta']
 
   def _syncHiddenState(self,packages):
     script=PackageList.getPluginScript()
