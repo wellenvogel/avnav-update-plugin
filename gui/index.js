@@ -1,4 +1,10 @@
 (function(){
+    const BETA_STATE={
+        inactive: 'inactive',
+        inactiveMod: 'inactive-mod',
+        active: 'active',
+        activeMod: 'active-mod'
+    };
     let webSocketConnection;
     let lastUpdateSequence;
     let flask;
@@ -29,7 +35,8 @@
         apiRequest('fetchList')
             .then(function(data){
                 let betaStatus=document.getElementById('betaStatus');
-                let betaStatusValue='unknown';
+                let betaActive=false;
+                let betaChange=false;
                 listFrame.innerHTML='';
                 let fields=['name','state','version','candidate'];
                 let d=document.createElement('tr');
@@ -42,11 +49,11 @@
                 });
                 listFrame.appendChild(d)    
                 data.data.forEach(function(le){
-                    if (le.beta == 'active'){
-                        betaStatusValue='ok';
+                    if (le.beta == BETA_STATE.active || le.beta == BETA_STATE.activeMod){
+                        betaActive=true;
                     }
-                    if (le.beta == 'available' && betaStatusValue !== 'ok'){
-                        betaStatusValue='off';
+                    if (le.beta == BETA_STATE.activeMod || le.beta == BETA_STATE.inactiveMod){
+                        betaChange=true;
                     }
                     d=document.createElement('tr');
                     d.classList.add('listElement');
@@ -70,9 +77,16 @@
                     listFrame.appendChild(d);
                 })
                 hideShowDisabled();
-                betaStatus.classList="statusText "+betaStatusValue;
-                document.getElementById('enableBeta').setAttribute('data-disabled', (betaStatusValue !='off'));
-                document.getElementById('disableBeta').setAttribute('data-disabled', (betaStatusValue != 'ok'));
+                betaStatus.classList="statusText "+(betaActive?'ok':'unknown');
+                for (let bt of (['enableBeta','disableBeta'])){
+                    const bte=document.getElementById(bt);
+                    if (bte){
+                        bte.style.display = betaChange ? 'inline-block' : 'none';
+                        const disabled=(bt === 'enableBeta')?betaActive:!betaActive;
+                        bte.setAttribute('data-disabled', disabled);
+                    }
+                }
+
             })
             .catch(function(error){
                 alert("unable to fetch info: "+error);

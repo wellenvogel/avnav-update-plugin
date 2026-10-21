@@ -31,6 +31,14 @@ import sys
 APT_DIR="/etc/apt/sources.list.d"
 BETA_ACTIVE="extra-beta.sources"
 BETA_INACTIVE=BETA_ACTIVE+".disabled"
+BETA_DEFAULT_PATTERN="debpreview"
+
+#beta states
+
+BS_NONE="inactive"
+BS_ACTIVE="active"
+BS_INACT_MOD="inactive-mod"
+BS_ACTIVE_MOD="active-mod"
 
 class NV:
   def __init__(self,**kwargs):
@@ -168,6 +176,10 @@ class PackageList:
     
   def fetchPackages(self):
     betaPattern=self.getBetaPattern()
+    canChangeBeta=True
+    if betaPattern is None:
+      canChangeBeta=False
+      betaPattern=BETA_DEFAULT_PATTERN
     CMD=["apt-cache","policy",self.prefix+"*"]
     res=subprocess.run(CMD,capture_output=True,timeout=20)
     if res.returncode != 0:
@@ -181,7 +193,7 @@ class PackageList:
         if pkg is not None:
           rt[pkg]=pkgData
         pkg=re.sub(":.*","",line)
-        pkgData=NV(name=pkg,beta='unavailable' if betaPattern is None else 'available')
+        pkgData=NV(name=pkg,beta=BS_INACT_MOD if canChangeBeta else BS_NONE)
       else:
         if pkg is None:
           continue
@@ -190,7 +202,7 @@ class PackageList:
             v=re.sub(pattern,"",line)
             pkgData.set(key,v)
         if betaPattern is not None and betaPattern in line:
-          pkgData.beta='active'
+          pkgData.beta=BS_ACTIVE_MOD if canChangeBeta else BS_ACTIVE
     if pkg is not None:
       rt[pkg]=pkgData
     plugins=self.getPluginPackages(list(rt.keys()))  
