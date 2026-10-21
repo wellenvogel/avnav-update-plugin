@@ -22,6 +22,7 @@
 #  DEALINGS IN THE SOFTWARE.
 #
 ###############################################################################
+import functools
 import subprocess
 import logging
 import re
@@ -141,51 +142,56 @@ class PackageList:
       canChangeBeta=False
       betaPattern=BETA_DEFAULT_PATTERN 
     disabledPlugins=self.getPluginHiddenState()  
-    cache=apt.cache.FilteredCache()
-    cache.set_filter(NamePattern(self.prefix))
-    cache.open()
-    rt={}
-    for k in cache.keys():
-      p=cache.get(k)
-      pkgData=NV(name=p.name,
-                 beta=BS_INACT_MOD if canChangeBeta else BS_NONE,
-                 version=p.installed.version if p.installed else None,
-                 candidate=p.candidate.version if p.candidate else None,
-                 state='installed' if p.installed else 'invalid')
-      versions=[]
-      hasBeta=False
-      if p.versions:
-        for version in p.versions:
-          if version.version == pkgData.version:
-            #check plugin data
-            plugin=version.record.get('avnav-plugin')
-            hidden=version.record.get('avnav-hidden')
-            if plugin is not None:
-              plugin=self.piNameToVar(plugin)
-              disabled=disabledPlugins.get(plugin)
-              pkgData.plugin=plugin
-              pkgData.disabled=disabled
-            pkgData.hidden=hidden
+    cache=None
+    try:
+      cache=apt.cache.Cache()
+      fcache=apt.cache.FilteredCache(cache)
+      fcache.set_filter(NamePattern(self.prefix))
+      rt={}
+      for k in fcache.keys():
+        p=cache.get(k)
+        pkgData=NV(name=p.name,
+                   beta=BS_INACT_MOD if canChangeBeta else BS_NONE,
+                   version=p.installed.version if p.installed else None,
+                   candidate=p.candidate.version if p.candidate else None,
+                   state='installed' if p.installed else 'invalid')
+        versions=[]
+        hasBeta=False
+        if p.versions:
+          for version in p.versions:
+            if version.version == pkgData.version:
+              #check plugin data
+              plugin=version.record.get('avnav-plugin')
+              hidden=version.record.get('avnav-hidden')
+              if plugin is not None:
+                plugin=self.piNameToVar(plugin)
+                disabled=disabledPlugins.get(plugin)
+                pkgData.plugin=plugin
+                pkgData.disabled=disabled
+              pkgData.hidden=hidden
+              continue
+            if len(version.uris)>0:
+              vstate=apt_pkg.version_compare(version.version,pkgData.version) if (pkgData.version is not None) else None
+              versions.append({'state':vstate,'version':version.version})
+            if any(map(lambda v: betaPattern in v, version.uris)):
+              hasBeta=True
+        versions.sort(key=functools.cmp_to_key(lambda a,b: apt_pkg.version_compare(a['version'],b['version'])),reverse=True)
+        pkgData.versions=versions
+        pkgData.beta=BS_ACTIVE_MOD if hasBeta and canChangeBeta else (BS_ACTIVE if hasBeta else pkgData.beta)
+        rt[k]=pkgData
+        logging.debug(f"processed package: {k} with data: {pkgData}")
+      rtlist=[]
+      for k,pkg in rt.items():
+        if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
+          if pkg.version is None or pkg.version == '':
             continue
-          if len(version.uris)>0:
-            vstate=apt_pkg.version_compare(version.version,pkgData.version) if (pkgData.version is not None) else None
-            versions.append({'state':vstate,'version':version.version})
-          if any(map(lambda v: betaPattern in v, version.uris)):
-            hasBeta=True
-      pkgData.versions=versions
-      pkgData.beta=BS_ACTIVE_MOD if hasBeta and canChangeBeta else (BS_ACTIVE if hasBeta else pkgData.beta)
-      rt[k]=pkgData
-      logging.debug(f"processed package: {k} with data: {pkgData}")
-    cache.close()
-    rtlist=[]
-    for k,pkg in rt.items():
-      if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
-        if pkg.version is None or pkg.version == '':
-          continue
-      if k in self.blackList:
-        continue  
-      rtlist.append(pkg.dict())
-    logging.debug("fetchPackageList: %s",str(rtlist))
+        if k in self.blackList:
+          continue  
+        rtlist.append(pkg.dict())
+      logging.debug("fetchPackageList: %s",str(rtlist))
+    finally:
+      if cache is not None:
+        cache.close()
     return rtlist
 
 

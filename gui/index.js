@@ -34,6 +34,7 @@
         listFrame.innerHTML='<div class="updateRunning blink">Reading Packages...</div>';
         apiRequest('fetchList')
             .then(function(data){
+                let allowDowngrade=document.getElementById('allowDowngrade')?.checked;
                 let betaStatus=document.getElementById('betaStatus');
                 let betaActive=false;
                 let betaChange=false;
@@ -49,6 +50,18 @@
                 });
                 listFrame.appendChild(d)    
                 data.data.forEach(function(le){
+                    //compute candidate
+                    let isDowngrade=false;
+                    if (le.candidate == le.version) le.candidate=undefined;
+                    if (! le.candidate && allowDowngrade){
+                        let cv=le.versions[0]
+                        if (cv){
+                            if (cv.state < 0) {
+                                isDowngrade=true;
+                                le.candidate=cv.version;
+                            }
+                        }
+                    }
                     if (le.beta == BETA_STATE.active || le.beta == BETA_STATE.activeMod){
                         betaActive=true;
                     }
@@ -71,7 +84,8 @@
                     e=document.createElement('input');
                     e.setAttribute('type','checkbox');
                     e.setAttribute('data-name',le.name);
-                    e.checked=!!le.candidate && !!le.version && !le.disabled;
+                    e.setAttribute('data-version',le.candidate);
+                    e.checked=!!le.candidate && !!le.version && !le.disabled && !isDowngrade;
                     td.appendChild(e);
                     d.appendChild(td);
                     listFrame.appendChild(d);
@@ -291,7 +305,15 @@
             let packageList = [];
             for (let i = 0; i < tickedBoxes.length; i++) {
                 let name = tickedBoxes[i].getAttribute('data-name');
-                if (name) packageList.push(name);
+                let version=tickedBoxes[i].getAttribute('data-version');
+                if (name) {
+                    if (version != null){
+                        packageList.push(encodeURIComponent(name+ "=" +version));
+                    }
+                    else{
+                        packageList.push(encodeURIComponent(name));
+                    }
+                }
             }
             if (packageList.length < 1) {
                 showConsole("Error: no packages selected for update");
@@ -299,7 +321,7 @@
             }
             action += "?"
             packageList.forEach(function (p) {
-                action += "package=" + encodeURIComponent(p) + "&";
+                action += "package=" + p + "&";
             });
         }
         apiRequest(action)
@@ -413,9 +435,7 @@
                         flask.disableReadonlyMode();
                     }
 
-                }
-                let sd=document.getElementById('showDisabled');
-                if (sd) sd.addEventListener('change',hideShowDisabled)    
+                }     
                 if (lastUpdateSequence !== data.updateSequence){
                     lastUpdateSequence=data.updateSequence;
                     fetchList();
@@ -425,6 +445,12 @@
                 console.log(error);
             })
         },1000);
+        let sd=document.getElementById('showDisabled');
+        if (sd) sd.addEventListener('change',hideShowDisabled)
+        let allowDowngrade=document.getElementById('allowDowngrade')
+        if (allowDowngrade) allowDowngrade.addEventListener("change",()=>{
+                    fetchList()
+        })   
         fetchList();
     })
 })();

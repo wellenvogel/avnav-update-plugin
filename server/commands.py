@@ -53,7 +53,7 @@ class Commands:
     ['sudo', '-n', 'apt-get', 'install','-y','-f']
   ]
   ALLOWED_PREFIX='avnav'
-  UPDATE=['sudo','-n','apt-get','install','-y']
+  UPDATE=['sudo','-n','apt-get','install','-y','--allow-downgrades']
   UPDATE_POST=[
     ['sudo','-n','systemctl','daemon-reload'],
     ['sudo','-n','update-ca-certificates','--fresh'],
