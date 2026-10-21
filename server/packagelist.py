@@ -27,6 +27,8 @@ import logging
 import re
 import os
 import sys
+import apt
+import apt_pkg
 
 APT_DIR="/etc/apt/sources.list.d"
 BETA_ACTIVE="extra-beta.sources"
@@ -40,6 +42,11 @@ BS_ACTIVE="active"
 BS_INACT_MOD="inactive-mod"
 BS_ACTIVE_MOD="active-mod"
 
+class NamePattern(apt.cache.Filter):
+  def __init__(self, pattern):
+    self.pattern = pattern
+  def apply(self, pkg):
+    return pkg.name.startswith(self.pattern)
 class NV:
   def __init__(self,**kwargs):
     self.version=None
@@ -179,12 +186,33 @@ class PackageList:
     canChangeBeta=True
     if betaPattern is None:
       canChangeBeta=False
-      betaPattern=BETA_DEFAULT_PATTERN
+      betaPattern=BETA_DEFAULT_PATTERN 
+    cache=apt.cache.FilteredCache()
+    cache.set_filter(NamePattern(self.prefix))
+    cache.open()
+    rt={}
+    for k in cache.keys():
+      p=cache.get(k)
+      pkgData=NV(name=p.name,
+                 beta=BS_INACT_MOD if canChangeBeta else BS_NONE,
+                 installed=p.installed.version if p.installed else None,
+                 candidate=p.candidate.version if p.candidate else None)
+      versions=[]
+      hasBeta=False
+      if p.versions:
+        for version in p.versions:
+          versions.append(version.version)
+          if any(map(lambda v: betaPattern in v, version.uris)):
+            hasBeta=True
+      pkgData.versions=versions
+      pkgData.beta=BS_ACTIVE_MOD if hasBeta and canChangeBeta else (BS_ACTIVE if hasBeta else pkgData.beta)
+      rt[k]=pkgData
+    cache.close()
+    '''
     CMD=["apt-cache","policy",self.prefix+"*"]
     res=subprocess.run(CMD,capture_output=True,timeout=20)
     if res.returncode != 0:
-      raise Exception("unable to run %s"%" ".join(CMD))
-    rt={}  
+      raise Exception("unable to run %s"%" ".join(CMD))    
     pkg=None
     pkgData=NV()  
     for line in res.stdout.splitlines():
@@ -205,6 +233,7 @@ class PackageList:
           pkgData.beta=BS_ACTIVE_MOD if canChangeBeta else BS_ACTIVE
     if pkg is not None:
       rt[pkg]=pkgData
+    '''
     plugins=self.getPluginPackages(list(rt.keys()))  
     for pkg in rt.keys():
       version=rt[pkg].version
