@@ -117,53 +117,6 @@ class PackageList:
           disabledPlugins[parts[0].rstrip()]=parts[1].rstrip().lstrip()
     return disabledPlugins
 
-  def getPluginPackages(self,candidates):
-    '''
-    fetch packages that have the avnav-plugin metadata set
-    set their disabled state from a query of avnav (plugin.sh) to list hidden plugins
-    set their hidden state from the avnav-hidden attribute   
-    '''
-    disabledPlugins=self.getPluginHiddenState()
-    cmd=["apt-cache","show"]+candidates
-    res=subprocess.run(cmd,capture_output=True,timeout=20)
-    if res.returncode != 0:
-      logging.error("execution of %s returned %d"%(" ".join(cmd),res.returncode))
-      return {}
-    rt={}
-    package=None  
-    for line in res.stdout.splitlines(): 
-      line=line.decode("utf-8",errors="ignore")
-      parts=re.split(": *",line)
-      if len(parts) != 2:
-        continue 
-      if parts[0] == 'Package':
-        package=parts[1]
-        rt[package]=PInfo()
-        continue
-      if package is None or rt.get(package) is None:
-        continue
-      if parts[0] == 'avnav-plugin':
-        logging.debug("package %s with plugin description: %s"%(package,parts[1]))
-        varName=self.piNameToVar(parts[1])
-        rt[package].plugin=varName
-        disabledState=disabledPlugins.get(varName)
-        rt[package].disabled=disabledState
-        continue
-      if parts[0] == 'avnav-hidden':
-        rt[package].hidden=True
-    pi={}
-    for k,v in rt.items():
-      if v.plugin is None:
-        continue
-      pi[k]=v    
-      #finally set the hidden state:
-      #if no disabled state is set (neither explicitly disabled nor explicitly enabled) the state from the 
-      #hidden info from the metadata will win
-      if pi[k].disabled is not None:
-        pi[k].hidden = pi[k].disabled == '1'
-    logging.debug("plugins=%s"%str(pi))    
-    return pi    
-
   def getBetaPattern(self):
     pattern=None
     for f in [BETA_ACTIVE,BETA_INACTIVE]:
@@ -187,6 +140,7 @@ class PackageList:
     if betaPattern is None:
       canChangeBeta=False
       betaPattern=BETA_DEFAULT_PATTERN 
+    disabledPlugins=self.getPluginHiddenState()  
     cache=apt.cache.FilteredCache()
     cache.set_filter(NamePattern(self.prefix))
     cache.open()
@@ -195,59 +149,34 @@ class PackageList:
       p=cache.get(k)
       pkgData=NV(name=p.name,
                  beta=BS_INACT_MOD if canChangeBeta else BS_NONE,
-                 installed=p.installed.version if p.installed else None,
-                 candidate=p.candidate.version if p.candidate else None)
+                 version=p.installed.version if p.installed else None,
+                 candidate=p.candidate.version if p.candidate else None,
+                 state='installed' if p.installed else 'invalid')
       versions=[]
       hasBeta=False
       if p.versions:
         for version in p.versions:
-          versions.append(version.version)
+          if version.version == pkgData.version:
+            #check plugin data
+            plugin=version.record.get('avnav-plugin')
+            hidden=version.record.get('avnav-hidden')
+            if plugin is not None:
+              plugin=self.piNameToVar(plugin)
+              disabled=disabledPlugins.get(plugin)
+              pkgData.plugin=plugin
+              pkgData.disabled=disabled
+            pkgData.hidden=hidden
+            continue
+          if len(version.uris)>0:
+            vstate=apt_pkg.version_compare(version.version,pkgData.version) if (pkgData.version is not None) else None
+            versions.append({'state':vstate,'version':version.version})
           if any(map(lambda v: betaPattern in v, version.uris)):
             hasBeta=True
       pkgData.versions=versions
       pkgData.beta=BS_ACTIVE_MOD if hasBeta and canChangeBeta else (BS_ACTIVE if hasBeta else pkgData.beta)
       rt[k]=pkgData
+      logging.debug(f"processed package: {k} with data: {pkgData}")
     cache.close()
-    '''
-    CMD=["apt-cache","policy",self.prefix+"*"]
-    res=subprocess.run(CMD,capture_output=True,timeout=20)
-    if res.returncode != 0:
-      raise Exception("unable to run %s"%" ".join(CMD))    
-    pkg=None
-    pkgData=NV()  
-    for line in res.stdout.splitlines():
-      line=line.decode("utf-8",errors="ignore")
-      if re.match("^"+self.prefix+".*:",line):
-        if pkg is not None:
-          rt[pkg]=pkgData
-        pkg=re.sub(":.*","",line)
-        pkgData=NV(name=pkg,beta=BS_INACT_MOD if canChangeBeta else BS_NONE)
-      else:
-        if pkg is None:
-          continue
-        for key,pattern in self.PATTERNS.items():
-          if (re.match(pattern,line)):
-            v=re.sub(pattern,"",line)
-            pkgData.set(key,v)
-        if betaPattern is not None and betaPattern in line:
-          pkgData.beta=BS_ACTIVE_MOD if canChangeBeta else BS_ACTIVE
-    if pkg is not None:
-      rt[pkg]=pkgData
-    '''
-    plugins=self.getPluginPackages(list(rt.keys()))  
-    for pkg in rt.keys():
-      version=rt[pkg].version
-      if version is None or version == "(none)":
-        rt[pkg].state="invalid"
-        rt[pkg].version=None
-      else:
-        rt[pkg].state="installed"
-      if rt[pkg].version == rt[pkg].candidate:
-        rt[pkg].candidate=None
-      piInfo=plugins.get(pkg)
-      if piInfo is not None:
-        rt[pkg].plugin=piInfo.plugin
-        rt[pkg].disabled=piInfo.hidden
     rtlist=[]
     for k,pkg in rt.items():
       if self.installedOnlyPrefix is not None and k.startswith(self.installedOnlyPrefix):
