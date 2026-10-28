@@ -495,3 +495,145 @@ button:not(:disabled):hover {
     }
 
 }
+
+[hidden] {
+    display: none !important;
+}
+
+.packageCount {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: #59666b;
+}
+
+.listTools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.packageSearch {
+    flex: 1 1 10rem;
+    min-width: 0;
+    min-height: 2.35rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid #80808047;
+    border-radius: 0.3rem;
+    font: inherit;
+}
+
+.chips {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.chip {
+    border-radius: 1rem;
+    padding: 0.3rem 0.8rem;
+}
+
+.chip[aria-pressed="true"] {
+    background: #546e7a;
+    border-color: #546e7a;
+    color: #fff;
+    font-weight: bold;
+}
+
+.emptyList {
+    padding: 1rem;
+    color: #59666b;
+    font-style: italic;
+}
+
+.versionLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.5rem;
+    font-size: 1.05rem;
+    overflow-wrap: anywhere;
+}
+
+.versionLine .arrow {
+    color: #59666b;
+}
+
+.versionLine .to {
+    font-weight: bold;
+}
+
+.versionLine .to.downgrade {
+    color: red;
+}
+
+.versionLine .none,
+.versionLine .from.none {
+    font-style: italic;
+    color: #7a858a;
+}
+
+.packageState.state-update {
+    color: #1b7a38;
+    font-weight: bold;
+}
+
+.packageState.state-downgrade {
+    color: red;
+    font-weight: bold;
+}
+
+.hint {
+    margin: 0 0 0.3rem;
+    font-size: 0.75rem;
+    color: #59666b;
+}
+
+.selectLinks {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.2rem;
+}
+
+.linkButton {
+    min-height: 1.8rem;
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    color: #1565c0;
+    text-decoration: underline;
+}
+
+#confirmOverlay {
+    z-index: 30;
+}
+
+#confirmOverlay .overlay {
+    flex: none;
+}
+
+#confirmOverlay .overlayContent {
+    flex: 0 1 auto;
+    word-break: normal;
+    white-space: normal;
+}
+
+#confirmOverlay .overlayButtons {
+    gap: 0.4rem;
+    padding: 0.4rem;
+}
+
+#confirmOverlay .primaryAction {
+    width: auto;
+    padding: 0.4rem 1.2rem;
+}
+
+.confirmList {
+    margin: 0.5rem 0;
+    padding-left: 1.2rem;
+}
+
+.confirmList .downgrade {
+    color: red;
+}

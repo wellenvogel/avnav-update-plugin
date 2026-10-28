@@ -29,6 +29,7 @@
         });
     }
     let listStateTimer;
+    let restingListState='';
     let setListState=function(text,blink,autoClear){
         let el=document.getElementById('listState');
         if (! el) return;
@@ -36,8 +37,80 @@
         el.textContent=text;
         el.classList.toggle('blink',!!blink);
         if (autoClear){
-            listStateTimer=setTimeout(function(){el.textContent='';},2500);
+            listStateTimer=setTimeout(function(){el.textContent=restingListState;},2500);
         }
+    }
+    let packageFilter='updates';
+    let packageSearch='';
+    let isDisabledPackage=function(le){
+        return !!le.disabled && le.disabled !== '0';
+    }
+    const PACKAGE_KINDS={
+        disabled:{label:'Disabled',hint:'This package is disabled'},
+        notinstalled:{label:'Not installed',hint:'The package is available but not installed'},
+        downgrade:{label:'Downgrade possible',hint:'An older version is available'},
+        update:{label:'Update available',hint:'A newer version is available'},
+        current:{label:'Up to date',hint:'The installed version is the newest available'}
+    };
+    let packageKind=function(le,isDowngrade){
+        if (isDisabledPackage(le)) return 'disabled';
+        if (! le.version) return 'notinstalled';
+        if (isDowngrade) return 'downgrade';
+        if (le.candidate) return 'update';
+        return 'current';
+    }
+    let applyFilter=function(){
+        let items=document.querySelectorAll('#infoFrame .packageItem');
+        let visible=0;
+        let updatable=0;
+        items.forEach(function(li){
+            let isDis=li.getAttribute('data-kind') === 'disabled';
+            let hasCandidate=li.getAttribute('data-candidate') === 'true';
+            if (! isDis && hasCandidate) updatable++;
+            let show;
+            if (packageFilter === 'all') show=true;
+            else if (packageFilter === 'disabled') show=isDis;
+            else show=!isDis && hasCandidate;
+            if (show && packageSearch){
+                show=li.getAttribute('data-name').toLowerCase().indexOf(packageSearch) >= 0;
+            }
+            li.hidden=!show;
+            if (show) visible++;
+        });
+        let count=document.getElementById('packageCount');
+        if (count) count.textContent=items.length?('('+updatable+' of '+items.length+' updatable)'):'';
+        document.querySelectorAll('.chip').forEach(function(chip){
+            chip.setAttribute('aria-pressed',chip.getAttribute('data-filter') === packageFilter?'true':'false');
+        });
+        let empty=document.querySelector('#infoFrame .emptyList');
+        if (empty){
+            empty.hidden=visible > 0 || ! items.length;
+            empty.textContent=(packageFilter === 'updates' && ! packageSearch)
+                ? 'All packages are up to date. Choose "All" to see every package.'
+                : 'No packages match.';
+        }
+    }
+    let buildVersionLine=function(le,isDowngrade,kind){
+        let line=document.createElement('div');
+        line.classList.add('versionLine');
+        let add=function(text,cls){
+            let s=document.createElement('span');
+            s.textContent=text;
+            if (cls) s.className=cls;
+            line.appendChild(s);
+        }
+        let installed=le.version || 'not installed';
+        if (le.candidate){
+            add(installed,le.version?'from':'from none');
+            add('\u2192','arrow');
+            add(le.candidate,isDowngrade?'to downgrade':'to');
+            line.setAttribute('aria-label',installed+' to '+le.candidate);
+        }
+        else{
+            add(installed,le.version?'from':'from none');
+            add(kind === 'current'?'up to date':'no candidate','none');
+        }
+        return line;
     }
     let fetchList=function(){
         let listFrame=document.getElementById('infoFrame');
@@ -46,12 +119,13 @@
         setListState('Reading packages...',true);
         apiRequest('fetchList')
             .then(function(data){
+                restingListState='List read '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
                 setListState('Package list updated',false,true);
                 let allowDowngrade=document.getElementById('allowDowngrade')?.checked;
                 let betaStatus=document.getElementById('betaStatus');
                 let betaActive=false;
                 let betaChange=false;
-                listFrame.innerHTML='';
+                let entries=[];
                 data.data.forEach(function(le){
                     //compute candidate
                     let isDowngrade=false;
@@ -72,13 +146,16 @@
                         betaChange=true;
                     }
                     let hasCandidate=!!le.candidate;
+                    let kind=packageKind(le,isDowngrade);
                     let item=document.createElement('li');
                     item.classList.add('packageItem');
+                    item.setAttribute('data-name',le.name || '');
+                    item.setAttribute('data-kind',kind);
+                    item.setAttribute('data-candidate',hasCandidate?'true':'false');
                     if (! hasCandidate) item.classList.add('noCandidate');
                     else item.classList.add(isDowngrade?'downgradeCandidate':'upgradeCandidate');
-                    if (le.disabled){
+                    if (kind === 'disabled'){
                         item.classList.add('disabledPackage');
-                        le.state="disabled";
                     }
                     let heading=document.createElement('div');
                     heading.classList.add('packageHeading');
@@ -88,28 +165,12 @@
                     heading.appendChild(name);
                     let state=document.createElement('span');
                     state.classList.add('packageState');
-                    state.textContent=le.state == null ? '—' : le.state;
+                    state.classList.add('state-'+kind);
+                    state.textContent=PACKAGE_KINDS[kind].label;
+                    state.title=PACKAGE_KINDS[kind].hint;
                     heading.appendChild(state);
                     item.appendChild(heading);
-
-                    let details=document.createElement('dl');
-                    details.classList.add('packageDetails');
-                    [['Installed version', le.version], ['Candidate version', le.candidate, isDowngrade]]
-                        .forEach(function(detail){
-                            let group=document.createElement('div');
-                            let label=document.createElement('dt');
-                            label.textContent=detail[0];
-                            let value=document.createElement('dd');
-                            let empty=detail[1] == null || detail[1] === '';
-                            value.textContent=empty
-                                ? (detail[2] === undefined ? '—' : 'no candidate') : detail[1];
-                            if (empty && detail[2] !== undefined) value.classList.add('none');
-                            if (detail[2]) value.classList.add('downgrade');
-                            group.appendChild(label);
-                            group.appendChild(value);
-                            details.appendChild(group);
-                        });
-                    item.appendChild(details);
+                    item.appendChild(buildVersionLine(le,isDowngrade,kind));
 
                     let selectLabel=document.createElement('label');
                     selectLabel.classList.add('packageSelect');
@@ -120,16 +181,27 @@
                     if (le.candidate != null){
                         checkbox.setAttribute('data-version',le.candidate);
                     }
+                    checkbox.setAttribute('data-installed',le.version || '');
+                    checkbox.setAttribute('data-downgrade',isDowngrade?'true':'false');
                     checkbox.disabled=!hasCandidate;
-                    checkbox.checked=hasCandidate && !!le.version && !le.disabled && !isDowngrade;
+                    checkbox.checked=hasCandidate && !!le.version && kind !== 'disabled' && !isDowngrade;
                     let selectText=document.createElement('span');
                     selectText.textContent='Select for update';
                     selectLabel.appendChild(checkbox);
                     selectLabel.appendChild(selectText);
                     item.appendChild(selectLabel);
-                    listFrame.appendChild(item);
+                    let rank=kind === 'disabled'?3:(hasCandidate?(isDowngrade?1:0):2);
+                    entries.push({rank:rank,name:le.name || '',item:item});
                 })
-                hideShowDisabled();
+                entries.sort(function(a,b){
+                    return (a.rank-b.rank) || a.name.localeCompare(b.name);
+                });
+                listFrame.innerHTML='';
+                entries.forEach(function(e){listFrame.appendChild(e.item);});
+                let empty=document.createElement('li');
+                empty.className='emptyList';
+                listFrame.appendChild(empty);
+                applyFilter();
                 updateSelection();
                 betaStatus.className="statusText "+(betaActive?'ok':'unknown');
                 betaStatus.setAttribute('aria-label',betaActive?'Beta enabled':'Beta disabled');
@@ -153,17 +225,64 @@
     let updateSelection=function(){
         let bt=document.getElementById('updatePackages');
         if (! bt) return;
-        let selected=document.querySelector('#infoFrame input[type=checkbox]:checked');
-        bt.setAttribute('data-disabled',selected?'false':'true');
+        let count=document.querySelectorAll('#infoFrame input[type=checkbox]:checked').length;
+        bt.textContent=count?('Update '+count+(count === 1?' package':' packages')):'Update Packages';
+        bt.setAttribute('data-disabled',count?'false':'true');
         buttonEnable(bt,!actionRunning);
     }
+    let selectVisible=function(checked){
+        document.querySelectorAll('#infoFrame .packageItem:not([hidden])')
+            .forEach(function(item){
+                let cb=item.querySelector('input[type=checkbox]');
+                if (! cb || cb.disabled) return;
+                // "select all" never picks packages that are not installed yet
+                if (checked && item.getAttribute('data-kind') === 'notinstalled') return;
+                cb.checked=checked;
+            });
+        updateSelection();
+    }
 
-    let hideShowDisabled=function(){
-        let cb=document.getElementById('showDisabled');
-        let disabledPackages=document.querySelectorAll('.disabledPackage');
-        for (let i=0;i<disabledPackages.length;i++){
-            disabledPackages[i].hidden=!cb.checked;
-        }
+    let confirmUpdate=function(){
+        return new Promise(function(resolve){
+            let overlay=document.getElementById('confirmOverlay');
+            if (! overlay){
+                resolve(true);
+                return;
+            }
+            let content=overlay.querySelector('.overlayContent');
+            content.innerHTML='';
+            let boxes=document.querySelectorAll('#infoFrame input[type=checkbox]:checked');
+            let title=document.createElement('strong');
+            title.textContent='Update '+boxes.length+(boxes.length === 1?' package?':' packages?');
+            content.appendChild(title);
+            let list=document.createElement('ul');
+            list.className='confirmList';
+            let downgrade=false;
+            boxes.forEach(function(cb){
+                let li=document.createElement('li');
+                let isDown=cb.getAttribute('data-downgrade') === 'true';
+                if (isDown) downgrade=true;
+                let installed=cb.getAttribute('data-installed') || 'not installed';
+                li.textContent=cb.getAttribute('data-name')+': '+installed+' \u2192 '+
+                    (cb.getAttribute('data-version') || 'newest')+(isDown?' (downgrade)':'');
+                if (isDown) li.className='downgrade';
+                list.appendChild(li);
+            });
+            content.appendChild(list);
+            let note=document.createElement('p');
+            note.textContent='AvNav is stopped during the update and started again afterwards.'+
+                (downgrade?' The selection contains downgrades.':'');
+            content.appendChild(note);
+            let done=function(result){
+                overlay.style.visibility='hidden';
+                document.getElementById('confirmOk').onclick=null;
+                document.getElementById('confirmCancel').onclick=null;
+                resolve(result);
+            };
+            document.getElementById('confirmOk').onclick=function(){done(true);};
+            document.getElementById('confirmCancel').onclick=function(){done(false);};
+            overlay.style.visibility='unset';
+        });
     }
 
     let closeWs=function(){
@@ -388,7 +507,13 @@
         updateList: function(){startAction('updateList')},
         enableBeta: function(){startAction('enableBeta')},
         disableBeta: function(){startAction('disableBeta')},
-        updatePackages: function(){startAction('updatePackages')},
+        updatePackages: function(){
+            confirmUpdate().then(function(ok){
+                if (ok) startAction('updatePackages');
+            });
+        },
+        selectAll: function(){selectVisible(true);},
+        selectNone: function(){selectVisible(false);},
         restart: function(){startAction('restart')},
         showLog: showLog,
         showEdit: showEdit,
@@ -501,8 +626,17 @@
         },1000);
         let infoFrame=document.getElementById('infoFrame');
         if (infoFrame) infoFrame.addEventListener('change',updateSelection);
-        let sd=document.getElementById('showDisabled');
-        if (sd) sd.addEventListener('change',hideShowDisabled)
+        let search=document.getElementById('packageSearch');
+        if (search) search.addEventListener('input',function(){
+            packageSearch=search.value.trim().toLowerCase();
+            applyFilter();
+        });
+        document.querySelectorAll('.chip').forEach(function(chip){
+            chip.addEventListener('click',function(){
+                packageFilter=chip.getAttribute('data-filter');
+                applyFilter();
+            });
+        });
         let allowDowngrade=document.getElementById('allowDowngrade')
         if (allowDowngrade) allowDowngrade.addEventListener("change",()=>{
                     fetchList()

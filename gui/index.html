@@ -20,7 +20,15 @@
     <div class="title" id="title">AvNav Updater</div>
     <div id="root">
       <main class="packagePanel">
-        <h1>Packages</h1>
+        <h1>Packages <span id="packageCount" class="packageCount"></span></h1>
+        <div class="listTools">
+          <input type="search" id="packageSearch" class="packageSearch" placeholder="Search packages" aria-label="Search packages" autocomplete="off"/>
+          <div class="chips" role="group" aria-label="Package filter">
+            <button type="button" class="chip" data-filter="updates" aria-pressed="true">Updates</button>
+            <button type="button" class="chip" data-filter="all" aria-pressed="false">All</button>
+            <button type="button" class="chip" data-filter="disabled" aria-pressed="false">Disabled</button>
+          </div>
+        </div>
         <ul class="infoFrame packageList" id="infoFrame" aria-live="polite"></ul>
       </main>
       <aside class="sidebarFrame">
@@ -52,18 +60,16 @@
         <div class="rightFrame">
         <section class="controlGroup" aria-labelledby="optionsHeading">
           <h2 id="optionsHeading">Options</h2>
-          <label class="row" for="showDisabled">
-            <span class="label">Show disabled packages</span>
-            <input type="checkbox" id="showDisabled"/>
-          </label>
           <label class="row" for="allowDowngrade">
             <span class="label">Allow downgrade</span>
             <input type="checkbox" id="allowDowngrade"/>
           </label>
+          <p class="hint">Also offer older versions of packages. Use with care.</p>
           <div class="row">
             <span class="label">Beta</span>
             <span class="statusText unknown" id="betaStatus" role="status" aria-label="Beta status"></span>
           </div>
+          <p class="hint">Beta uses pre-release package sources.</p>
           <div class="buttonGroup">
             <button id="enableBeta" class="action">Enable Beta</button>
             <button id="disableBeta" class="action">Disable Beta</button>
@@ -79,6 +85,10 @@
         <section class="controlGroup actionGroup" aria-labelledby="actionHeading">
           <h2 id="actionHeading">Action</h2>
           <button id="updatePackages" class="action primaryAction">Update Packages</button>
+          <div class="selectLinks">
+            <button type="button" id="selectAll" class="linkButton">Select all</button>
+            <button type="button" id="selectNone" class="linkButton">Select none</button>
+          </div>
         </section>
         <section class="controlGroup" aria-labelledby="toolsHeading">
           <h2 id="toolsHeading">Tools</h2>
@@ -98,6 +108,15 @@
       </div>
       <div class="overlayButtons">
         <button id="closeOverlay">Close</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlayFrame" id="confirmOverlay">
+    <div class="overlay">
+      <div class="overlayContent"></div>
+      <div class="overlayButtons">
+        <button id="confirmCancel">Cancel</button>
+        <button id="confirmOk" class="primaryAction">Update</button>
       </div>
     </div>
   </div>
