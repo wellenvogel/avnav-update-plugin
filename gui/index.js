@@ -65,12 +65,14 @@
         let updatable=0;
         items.forEach(function(li){
             let isDis=li.getAttribute('data-kind') === 'disabled';
+            let isNew=li.getAttribute('data-kind') === 'notinstalled';
             let hasCandidate=li.getAttribute('data-candidate') === 'true';
-            if (! isDis && hasCandidate) updatable++;
+            let isUpdate=!isDis && !isNew && hasCandidate;
+            if (isUpdate) updatable++;
             let show;
             if (packageFilter === 'all') show=true;
             else if (packageFilter === 'disabled') show=isDis;
-            else show=!isDis && hasCandidate;
+            else show=isUpdate;
             if (show && packageSearch){
                 show=li.getAttribute('data-name').toLowerCase().indexOf(packageSearch) >= 0;
             }

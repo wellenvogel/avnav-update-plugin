@@ -32,6 +32,7 @@ Summary of the UI rework of the update plugin (`index.html`, `index.css`, `index
 - Control boxes are flat with an uppercase title and a dark underline, so they differ clearly from the cards.
 - Disabled buttons are dimmed with a not-allowed cursor.
 - The "Select for update" row is dimmed when its checkbox is disabled.
+- Overlay dialog buttons (log, config, console, confirm) have gaps, padding, borders and a minimum width.
 
 ## Behaviour
 
@@ -40,7 +41,8 @@ Summary of the UI rework of the update plugin (`index.html`, `index.css`, `index
 - Packages without a candidate have a disabled checkbox. Downgrade candidates are shown in red and only appear with Allow downgrade ticked.
 - Version line `installed -> candidate`; "up to date" or "no candidate" when there is nothing newer.
 - State labels with tooltips: Update available, Downgrade possible, Up to date, Not installed, Disabled.
-- Filter chips (Updates, All, Disabled), a search box, and a count in the heading ("6 of 12 updatable"). The old "Show disabled packages" checkbox was replaced by the chips.
+- Filter chips (Updates, All, Disabled), a search box, and a count in the heading ("2 of 12 updatable"). The old "Show disabled packages" checkbox was replaced by the chips. The chips use the same button styling as the other buttons; the active one is dark blue-grey.
+- "Updates" shows only installed packages with a newer candidate (not-installed and disabled packages are excluded); the heading count uses the same rule. Not-installed packages are listed under "All".
 - Sorting: updates first, then downgrades, up to date, disabled; each group by name.
 - Select all never selects packages that are not installed.
 - The Activity row shows "Reading packages...", then "Package list updated", then "List read HH:MM". This is the time the browser read the list, not the apt refresh time.

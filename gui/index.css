@@ -432,6 +432,19 @@ button:not(:disabled):hover {
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem;
+}
+
+.overlayButtons button {
+    min-width: 5.5rem;
+    border: 1px solid #78909c;
+}
+
+.overlayButtons button.primaryAction {
+    width: auto;
+    border-color: #546e7a;
 }
 
 @media (max-width: 760px) {
@@ -530,8 +543,7 @@ button:not(:disabled):hover {
 }
 
 .chip {
-    border-radius: 1rem;
-    padding: 0.3rem 0.8rem;
+    min-width: 4.5rem;
 }
 
 .chip[aria-pressed="true"] {
