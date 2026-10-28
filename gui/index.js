@@ -112,6 +112,7 @@
         }
         return line;
     }
+    let packageData;
     let fetchList=function(){
         let listFrame=document.getElementById('infoFrame');
         if (! listFrame) return;
@@ -119,14 +120,28 @@
         setListState('Reading packages...',true);
         apiRequest('fetchList')
             .then(function(data){
+                packageData=data.data;
                 restingListState='List read '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
                 setListState('Package list updated',false,true);
+                renderList();
+            })
+            .catch(function(error){
+                setListState('Reading packages failed',false,true);
+                alert("unable to fetch info: "+error);
+            })
+    }
+    let renderList=function(){
+        let listFrame=document.getElementById('infoFrame');
+        if (! listFrame || ! packageData) return;
+        {
+            {
                 let allowDowngrade=document.getElementById('allowDowngrade')?.checked;
                 let betaStatus=document.getElementById('betaStatus');
                 let betaActive=false;
                 let betaChange=false;
                 let entries=[];
-                data.data.forEach(function(le){
+                packageData.forEach(function(orig){
+                    let le=Object.assign({},orig);
                     //compute candidate
                     let isDowngrade=false;
                     if (le.candidate == le.version) le.candidate=undefined;
@@ -213,12 +228,8 @@
                         bte.setAttribute('data-disabled', disabled);
                     }
                 }
-
-            })
-            .catch(function(error){
-                setListState('Reading packages failed',false,true);
-                alert("unable to fetch info: "+error);
-            })
+            }
+        }
     }
 
     let actionRunning=false;
@@ -638,9 +649,7 @@
             });
         });
         let allowDowngrade=document.getElementById('allowDowngrade')
-        if (allowDowngrade) allowDowngrade.addEventListener("change",()=>{
-                    fetchList()
-        })   
+        if (allowDowngrade) allowDowngrade.addEventListener("change",renderList)
         fetchList();
     })
 })();
