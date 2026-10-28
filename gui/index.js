@@ -31,7 +31,7 @@
     let fetchList=function(){networkUpdate
         let listFrame=document.getElementById('infoFrame');
         if (! listFrame) return;
-        listFrame.innerHTML='<div class="updateRunning blink">Reading Packages...</div>';
+        listFrame.innerHTML='<li class="updateRunning blink">Reading Packages...</li>';
         apiRequest('fetchList')
             .then(function(data){
                 let allowDowngrade=document.getElementById('allowDowngrade')?.checked;
@@ -39,16 +39,6 @@
                 let betaActive=false;
                 let betaChange=false;
                 listFrame.innerHTML='';
-                let fields=['name','state','version','candidate'];
-                let d=document.createElement('tr');
-                d.classList.add('listHeadline');
-                fields.concat(['include']).forEach(function(f){
-                    let e=document.createElement('th');
-                    e.classList.add(f+"Hdg");
-                    e.textContent=f;
-                    d.appendChild(e);
-                });
-                listFrame.appendChild(d)    
                 data.data.forEach(function(le){
                     //compute candidate
                     let isDowngrade=false;
@@ -68,30 +58,60 @@
                     if (le.beta == BETA_STATE.activeMod || le.beta == BETA_STATE.inactiveMod){
                         betaChange=true;
                     }
-                    d=document.createElement('tr');
-                    d.classList.add('listElement');
+                    let item=document.createElement('li');
+                    item.classList.add('packageItem');
                     if (le.disabled){
-                        d.classList.add('disabledPackage');
+                        item.classList.add('disabledPackage');
                         le.state="disabled";
                     }
-                    fields.forEach(function(f){
-                        let e=document.createElement('td');
-                        e.classList.add(f);
-                        e.textContent=le[f];
-                        d.appendChild(e);
-                    });
-                    let td=document.createElement('td');
-                    e=document.createElement('input');
-                    e.setAttribute('type','checkbox');
-                    e.setAttribute('data-name',le.name);
-                    e.setAttribute('data-version',le.candidate);
-                    e.checked=!!le.candidate && !!le.version && !le.disabled && !isDowngrade;
-                    td.appendChild(e);
-                    d.appendChild(td);
-                    listFrame.appendChild(d);
+                    let heading=document.createElement('div');
+                    heading.classList.add('packageHeading');
+                    let name=document.createElement('strong');
+                    name.classList.add('packageName');
+                    name.textContent=le.name || 'Unnamed package';
+                    heading.appendChild(name);
+                    let state=document.createElement('span');
+                    state.classList.add('packageState');
+                    state.textContent=le.state == null ? '—' : le.state;
+                    heading.appendChild(state);
+                    item.appendChild(heading);
+
+                    let details=document.createElement('dl');
+                    details.classList.add('packageDetails');
+                    [['Installed version', le.version], ['Candidate version', le.candidate]]
+                        .forEach(function(detail){
+                            let group=document.createElement('div');
+                            let label=document.createElement('dt');
+                            label.textContent=detail[0];
+                            let value=document.createElement('dd');
+                            value.textContent=detail[1] == null || detail[1] === ''
+                                ? '—' : detail[1];
+                            group.appendChild(label);
+                            group.appendChild(value);
+                            details.appendChild(group);
+                        });
+                    item.appendChild(details);
+
+                    let selectLabel=document.createElement('label');
+                    selectLabel.classList.add('packageSelect');
+                    let checkbox=document.createElement('input');
+                    checkbox.setAttribute('type','checkbox');
+                    checkbox.setAttribute('data-name',le.name);
+                    checkbox.setAttribute('aria-label','Select '+(le.name || 'package'));
+                    if (le.candidate != null){
+                        checkbox.setAttribute('data-version',le.candidate);
+                    }
+                    checkbox.checked=!!le.candidate && !!le.version && !le.disabled && !isDowngrade;
+                    let selectText=document.createElement('span');
+                    selectText.textContent='Select for update';
+                    selectLabel.appendChild(checkbox);
+                    selectLabel.appendChild(selectText);
+                    item.appendChild(selectLabel);
+                    listFrame.appendChild(item);
                 })
                 hideShowDisabled();
-                betaStatus.classList="statusText "+(betaActive?'ok':'unknown');
+                betaStatus.className="statusText "+(betaActive?'ok':'unknown');
+                betaStatus.setAttribute('aria-label',betaActive?'Beta enabled':'Beta disabled');
                 for (let bt of (['enableBeta','disableBeta'])){
                     const bte=document.getElementById(bt);
                     if (bte){
@@ -111,8 +131,7 @@
         let cb=document.getElementById('showDisabled');
         let disabledPackages=document.querySelectorAll('.disabledPackage');
         for (let i=0;i<disabledPackages.length;i++){
-            if (cb.checked) disabledPackages[i].style.display='table-row';
-            else disabledPackages[i].style.display='none';
+            disabledPackages[i].hidden=!cb.checked;
         }
     }
 
@@ -391,14 +410,16 @@
                 let actionDisplay=document.getElementById('runningAction');
                 if (actionDisplay){
                     if (data.actionRunning){
-                        actionDisplay.classList=['running'];
+                        actionDisplay.classList.remove('stopped');
+                        actionDisplay.classList.add('running');
                         let txt=actionDisplay.querySelector('.actionName');
                         if (txt){
                             txt.textContent=data.currentAction;
                         }
                     }
                     else{
-                        actionDisplay.classList=['stopped'];
+                        actionDisplay.classList.remove('running');
+                        actionDisplay.classList.add('stopped');
                     }
                 }
                 let statusText=document.getElementById('avnavStatusText');

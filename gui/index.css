@@ -6,16 +6,16 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     font-family: Verdana, Arial, sans-serif;
 }
 html{
-    overflow: hidden;
+    overflow-x: hidden;
 }
 body{
-    overflow: auto;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 text {
     font-family: Verdana, Arial, sans-serif;
@@ -39,7 +39,7 @@ text {
     background-image: radial-gradient(rgb(240, 217, 10), rgba(240, 217, 10, 0.6),transparent);
 }
 .title {
-    height: 4em;
+    min-height: 4em;
     background-color: rgb(84, 110, 122);
     color: white;
     font-weight: bold;
@@ -47,103 +47,187 @@ text {
     padding: 1em;
 }
 #root {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    align-items: start;
+    gap: 1rem;
     width: 100%;
-    height: 100%;
     padding: 1em;
-}
-
-.infoFrame {
     flex: 1;
-    border-collapse: collapse;
-    margin: 1em;
-    border: 1px solid grey;
-}
-table, td, th {
-    border: 1px solid grey;
-}
-td, th {
-    padding: 0.3em;
-}
-.updateRunning {
-    margin: 1em;
-    text-align: center;
 }
 
-.rightFrame {
-    display: flex;
-    flex-direction: column;
-    margin: 1em;
+.packagePanel {
+    min-width: 0;
 }
-.statusFrame {
+
+.packagePanel h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.35rem;
+}
+
+.packageList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.packageItem, .controlGroup {
+    border: 1px solid #c7cdd0;
+    border-radius: 0.45rem;
+    background: #fff;
+    box-shadow: 0 1px 3px #00000012;
+}
+
+.packageItem {
     display: flex;
     flex-direction: column;
-    padding-bottom: 0.5em;
-    border-bottom: 1px solid grey;
-    margin-bottom: 0.5em;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.85rem;
+}
+
+.packageHeading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.packageName {
+    overflow-wrap: anywhere;
+}
+
+.packageState {
+    flex-shrink: 0;
+    color: #455a64;
+    font-size: 0.85rem;
+}
+
+.packageDetails {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.packageDetails dt {
+    color: #59666b;
+    font-size: 0.75rem;
+}
+
+.packageDetails dd {
+    margin: 0.2rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.packageSelect {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.5rem;
+    border-top: 1px solid #e1e5e7;
+    padding-top: 0.55rem;
+}
+
+.packageSelect input, .row input {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+}
+
+.updateRunning {
+    grid-column: 1 / -1;
+    padding: 1rem;
+    text-align: center;
 }
 
 .disabledPackage {
     opacity: 0.6;
 }
 
-.buttonFrame {
+.rightFrame {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
 }
 
+.controlGroup {
+    padding: 0.75rem;
+}
+
+.controlGroup h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+}
 
 button {
-    width: 8em;
-    margin: 0.3em;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    height: 3em;
-    border-width: 1px;
-    border-radius: 0.2em;
-    border-color: #80808047;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #80808047;
+    border-radius: 0.3rem;
+    background: #f7f8f8;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
 }
 
-
-
-.currentState, .networkState, .currentAction, .showDisabled {
+.buttonGroup {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
 }
-.row{
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+
+.buttonGroup button {
+    flex: 1 1 8rem;
 }
-.currentState{
-    border-top: 1px solid grey;
-    border-bottom: 1px solid grey;
-    padding-bottom: 1em;
+
+.primaryAction {
+    width: 100%;
+    background: #546e7a;
+    color: white;
+    font-weight: bold;
 }
 
 #runningAction.stopped {
     visibility: hidden;
 }
+
+#runningAction {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 .actionName {
     display: block;
     margin: 0.3em;
     color: red;
-    height: 1.5em;
+    min-height: 1.5em;
 }
+
 .label {
     display: block;
-    margin: 0.3em;
+    margin: 0.3em 0;
     font-size: 0.8em;
     opacity: 0.6;
 }
 
 .statusText{
-    margin: 0.3em;
-    height: 1em;
+    margin: 0.3em 0;
+    min-height: 1em;
 }
 
 .statusText[data-status="3"] {
@@ -161,12 +245,8 @@ button {
     width: 1em;
     height: 1em;
     border-radius: 50%;
-    margin-left: auto;
-    margin-right: auto;
-}
-#networkUpdate, #showDisabled {
-    margin-left: auto;
-    margin-right: auto;
+    flex: 0 0 1em;
+    margin: 0.3em;
 }
 
 .overlayFrame{
@@ -228,36 +308,14 @@ button {
     justify-content: flex-end;
 }
 
-@media (max-width: 1000px) {
-    #root{
-        flex-direction: column;
-    }
-    .buttonFrame, .statusFrame{
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    .rightFrame{
-        align-items: stretch;
-        margin: 0;
-    }
-    .currentAction{
-        margin-top: unset;
-        border-top: unset;
-    }
-    .currentAction, .currentState, .networkState {
-        margin-left: 1em;
-        margin-right: 1em;
+@media (max-width: 760px) {
+    #root {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 0.75rem;
     }
 
-    .currentState{
-        border-top: unset;
-        border-bottom: unset;
-        border-left: 1px solid grey;
-        border-right: 1px solid grey;
-        padding-left: 1em;
-        padding-right: 1em;
-        padding-bottom: unset;
+    .packageList {
+        grid-template-columns: minmax(0, 1fr);
     }
 
 }

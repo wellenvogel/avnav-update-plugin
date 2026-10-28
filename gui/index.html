@@ -19,64 +19,73 @@
     </noscript>
     <div class="title" id="title">AvNav Updater</div>
     <div id="root">
-      <table class="infoFrame" id="infoFrame">        
-      </table>
-      <div class="rightFrame">
-        <div class="statusFrame">
-          <div class="showDisabled">
-            <div class="row">
-              <span class="label">ShowDisabled</span>
-              <input type="checkbox" id="showDisabled"/>
-            </div>
+      <main class="packagePanel">
+        <h1>Packages</h1>
+        <ul class="infoFrame packageList" id="infoFrame" aria-live="polite"></ul>
+      </main>
+      <aside class="rightFrame">
+        <section class="controlGroup" aria-labelledby="optionsHeading">
+          <h2 id="optionsHeading">Options</h2>
+          <label class="row" for="showDisabled">
+            <span class="label">Show disabled packages</span>
+            <input type="checkbox" id="showDisabled"/>
+          </label>
+          <label class="row" for="allowDowngrade">
+            <span class="label">Allow downgrade</span>
+            <input type="checkbox" id="allowDowngrade"/>
+          </label>
+          <div class="row">
+            <span class="label">Beta</span>
+            <span class="statusText unknown" id="betaStatus" role="status" aria-label="Beta status"></span>
           </div>
-          <div class="allowDowngrade">
-            <div class="row">
-              <span class="label">AllowDowngrade</span>
-              <input type="checkbox" id="allowDowngrade"/>
-            </div>
+          <div class="buttonGroup">
+            <button id="enableBeta" class="action">Enable Beta</button>
+            <button id="disableBeta" class="action">Disable Beta</button>
           </div>
-        </div>
-          <div class="currentAction">
-            <span class="label">Running Action</span>
-            <div id="runningAction">
+        </section>
+        <section class="controlGroup" aria-labelledby="statusHeading">
+          <h2 id="statusHeading">Status</h2>
+          <div class="row">
+            <span class="label">Internet</span>
+            <span id="networkStatus" class="statusText unknown" role="status" aria-label="Internet status"></span>
+          </div>
+          <label class="row" for="networkUpdate">
+            <span class="label">Auto Update</span>
+            <input type="checkbox" id="networkUpdate"/>
+          </label>
+          <div class="row">
+            <span class="label">AvNav</span>
+            <span class="statusText" id="avnavStatusText"></span>
+          </div>
+          <div class="row currentAction">
+            <span class="label">Running action</span>
+            <div id="runningAction" class="stopped">
               <span class="actionName blink"></span>
               <button id="showConsole">Console</button>
             </div>
           </div>
-          <div class="currentState">
-            <span class="label">AvNav Status</span>
-            <span class="statusText" id="avnavStatusText"></span>
-          </div>
-          <div class="networkState">
-          <div class="row">
-            <span class="label">Beta</span>
-            <span class="statusText unknown" id="betaStatus"></span>
-          </div>
-          </div>
-          <div class="networkState">
-              <div class="row">
-                <span class="label">Internet</span>
-                <span id="networkStatus" class="statusText unknown"></span>
-              </div>
-              <div class="row">
-                <span class="label">Auto Update</span>
-                <input type="checkbox" id="networkUpdate"/>
-              </div>
-          </div>  
-        </div>
-        <div class="buttonFrame">
-            <button id="reload" >Reload</button>
+        </section>
+        <section class="controlGroup" aria-labelledby="refreshHeading">
+          <h2 id="refreshHeading">Refresh</h2>
+          <div class="buttonGroup">
+            <button id="reload">Reload</button>
             <button id="updateList" class="action">Refresh Package Info</button>
-            <button id="updatePackages" class="action">Update Packages</button>
-            <button id="enableBeta" class="action">Enable Beta</button>
-            <button id="disableBeta" class="action">Disable Beta</button>
+          </div>
+        </section>
+        <section class="controlGroup actionGroup" aria-labelledby="actionHeading">
+          <h2 id="actionHeading">Action</h2>
+          <button id="updatePackages" class="action primaryAction">Update Packages</button>
+        </section>
+        <section class="controlGroup" aria-labelledby="toolsHeading">
+          <h2 id="toolsHeading">Tools</h2>
+          <div class="buttonGroup">
             <button id="restart" class="action">Restart AvNav</button>
             <button id="showLog" class="action">AvNav Log</button>
             <button id="showEdit" class="action">AvNav Config</button>
           </div>
-      </div>
+        </section>
+      </aside>
     </div>  
-  </div>
   <div class="overlayFrame" id="responseOverlay">
     <div class="overlay">
       <div class="overlayContent">
@@ -113,4 +122,3 @@
       </div>
   </body>
 </html>
-
