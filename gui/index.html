@@ -23,27 +23,8 @@
         <h1>Packages</h1>
         <ul class="infoFrame packageList" id="infoFrame" aria-live="polite"></ul>
       </main>
-      <aside class="rightFrame">
-        <section class="controlGroup" aria-labelledby="optionsHeading">
-          <h2 id="optionsHeading">Options</h2>
-          <label class="row" for="showDisabled">
-            <span class="label">Show disabled packages</span>
-            <input type="checkbox" id="showDisabled"/>
-          </label>
-          <label class="row" for="allowDowngrade">
-            <span class="label">Allow downgrade</span>
-            <input type="checkbox" id="allowDowngrade"/>
-          </label>
-          <div class="row">
-            <span class="label">Beta</span>
-            <span class="statusText unknown" id="betaStatus" role="status" aria-label="Beta status"></span>
-          </div>
-          <div class="buttonGroup">
-            <button id="enableBeta" class="action">Enable Beta</button>
-            <button id="disableBeta" class="action">Disable Beta</button>
-          </div>
-        </section>
-        <section class="controlGroup" aria-labelledby="statusHeading">
+      <aside class="sidebarFrame">
+        <section class="controlGroup statusPanel" aria-labelledby="statusHeading">
           <h2 id="statusHeading">Status</h2>
           <div class="row">
             <span class="label">Internet</span>
@@ -65,6 +46,26 @@
             </div>
           </div>
         </section>
+        <div class="rightFrame">
+        <section class="controlGroup" aria-labelledby="optionsHeading">
+          <h2 id="optionsHeading">Options</h2>
+          <label class="row" for="showDisabled">
+            <span class="label">Show disabled packages</span>
+            <input type="checkbox" id="showDisabled"/>
+          </label>
+          <label class="row" for="allowDowngrade">
+            <span class="label">Allow downgrade</span>
+            <input type="checkbox" id="allowDowngrade"/>
+          </label>
+          <div class="row">
+            <span class="label">Beta</span>
+            <span class="statusText unknown" id="betaStatus" role="status" aria-label="Beta status"></span>
+          </div>
+          <div class="buttonGroup">
+            <button id="enableBeta" class="action">Enable Beta</button>
+            <button id="disableBeta" class="action">Disable Beta</button>
+          </div>
+        </section>
         <section class="controlGroup" aria-labelledby="refreshHeading">
           <h2 id="refreshHeading">Refresh</h2>
           <div class="buttonGroup">
@@ -84,6 +85,7 @@
             <button id="showEdit" class="action">AvNav Config</button>
           </div>
         </section>
+        </div>
       </aside>
     </div>  
   <div class="overlayFrame" id="responseOverlay">

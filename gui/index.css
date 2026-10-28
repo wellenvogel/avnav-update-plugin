@@ -6,16 +6,15 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    min-height: 100%;
+    height: 100%;
     font-family: Verdana, Arial, sans-serif;
 }
-html{
-    overflow-x: hidden;
+html, body{
+    overflow: hidden;
 }
 body{
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
 }
 text {
     font-family: Verdana, Arial, sans-serif;
@@ -49,15 +48,22 @@ text {
 #root {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
-    align-items: start;
+    grid-template-areas: "packages sidebar";
     gap: 1rem;
     width: 100%;
     padding: 1em;
-    flex: 1;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
 }
 
 .packagePanel {
+    grid-area: packages;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .packagePanel h1 {
@@ -84,9 +90,9 @@ text {
 .packageItem {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     min-width: 0;
-    padding: 0.85rem;
+    padding: 0.7rem;
 }
 
 .packageHeading {
@@ -127,7 +133,7 @@ text {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    min-height: 2.5rem;
+    min-height: 2.25rem;
     border-top: 1px solid #e1e5e7;
     padding-top: 0.55rem;
 }
@@ -148,19 +154,31 @@ text {
     opacity: 0.6;
 }
 
-.rightFrame {
+.sidebarFrame {
+    grid-area: sidebar;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    align-items: stretch;
+    gap: 0.5rem;
     min-width: 0;
 }
 
+.rightFrame {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    flex: none;
+}
+
 .controlGroup {
-    padding: 0.75rem;
+    padding: 0.55rem 0.7rem;
 }
 
 .controlGroup h2 {
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.3rem;
     font-size: 1rem;
 }
 
@@ -169,12 +187,21 @@ text {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    min-height: 2.5rem;
+    min-height: 2rem;
+}
+
+.statusPanel {
+    grid-area: status;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #fff;
 }
 
 button {
-    min-height: 2.75rem;
-    padding: 0.55rem 0.75rem;
+    min-height: 2.35rem;
+    padding: 0.4rem 0.6rem;
     border: 1px solid #80808047;
     border-radius: 0.3rem;
     background: #f7f8f8;
@@ -183,11 +210,22 @@ button {
     cursor: pointer;
 }
 
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    color: #6b7378;
+    background: #e9ecee;
+}
+
+button:not(:disabled):hover {
+    filter: brightness(0.95);
+}
+
 .buttonGroup {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 0.45rem;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
 }
 
 .buttonGroup button {
@@ -201,8 +239,13 @@ button {
     font-weight: bold;
 }
 
-#runningAction.stopped {
-    visibility: hidden;
+.primaryAction:disabled {
+    background: #90a4ae;
+    color: #eceff1;
+}
+
+#runningAction.stopped .actionName {
+    display: none;
 }
 
 #runningAction {
@@ -311,7 +354,57 @@ button {
 @media (max-width: 760px) {
     #root {
         grid-template-columns: minmax(0, 1fr);
-        padding: 0.75rem;
+        grid-template-areas:
+            "status"
+            "packages"
+            "controls";
+        grid-template-rows: none;
+        align-content: start;
+        align-items: start;
+        padding: 0 0.75rem 0.75rem;
+        row-gap: 0.75rem;
+        overflow-y: auto;
+    }
+
+    .sidebarFrame {
+        display: contents;
+    }
+
+    .statusPanel {
+        position: sticky;
+        grid-area: status;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.3rem 0.7rem;
+        box-shadow: 0 2px 4px #0003;
+    }
+
+    .statusPanel h2 {
+        display: none;
+    }
+
+    .statusPanel .row {
+        min-height: 1.75rem;
+        gap: 0.4rem;
+    }
+
+    .rightFrame {
+        grid-area: controls;
+    }
+
+    .packagePanel {
+        grid-area: packages;
+    }
+
+    .packagePanel, .rightFrame {
+        overflow: visible;
+        min-height: auto;
+        flex: none;
     }
 
     .packageList {
