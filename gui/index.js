@@ -28,12 +28,25 @@
             });
         });
     }
-    let fetchList=function(){networkUpdate
+    let listStateTimer;
+    let setListState=function(text,blink,autoClear){
+        let el=document.getElementById('listState');
+        if (! el) return;
+        clearTimeout(listStateTimer);
+        el.textContent=text;
+        el.classList.toggle('blink',!!blink);
+        if (autoClear){
+            listStateTimer=setTimeout(function(){el.textContent='';},2500);
+        }
+    }
+    let fetchList=function(){
         let listFrame=document.getElementById('infoFrame');
         if (! listFrame) return;
         listFrame.innerHTML='<li class="updateRunning blink">Reading Packages...</li>';
+        setListState('Reading packages...',true);
         apiRequest('fetchList')
             .then(function(data){
+                setListState('Package list updated',false,true);
                 let allowDowngrade=document.getElementById('allowDowngrade')?.checked;
                 let betaStatus=document.getElementById('betaStatus');
                 let betaActive=false;
@@ -58,8 +71,10 @@
                     if (le.beta == BETA_STATE.activeMod || le.beta == BETA_STATE.inactiveMod){
                         betaChange=true;
                     }
+                    let hasCandidate=!!le.candidate;
                     let item=document.createElement('li');
                     item.classList.add('packageItem');
+                    if (! hasCandidate) item.classList.add('noCandidate');
                     if (le.disabled){
                         item.classList.add('disabledPackage');
                         le.state="disabled";
@@ -78,14 +93,17 @@
 
                     let details=document.createElement('dl');
                     details.classList.add('packageDetails');
-                    [['Installed version', le.version], ['Candidate version', le.candidate]]
+                    [['Installed version', le.version], ['Candidate version', le.candidate, isDowngrade]]
                         .forEach(function(detail){
                             let group=document.createElement('div');
                             let label=document.createElement('dt');
                             label.textContent=detail[0];
                             let value=document.createElement('dd');
-                            value.textContent=detail[1] == null || detail[1] === ''
-                                ? '—' : detail[1];
+                            let empty=detail[1] == null || detail[1] === '';
+                            value.textContent=empty
+                                ? (detail[2] === undefined ? '—' : 'no candidate') : detail[1];
+                            if (empty && detail[2] !== undefined) value.classList.add('none');
+                            if (detail[2]) value.classList.add('downgrade');
                             group.appendChild(label);
                             group.appendChild(value);
                             details.appendChild(group);
@@ -101,7 +119,8 @@
                     if (le.candidate != null){
                         checkbox.setAttribute('data-version',le.candidate);
                     }
-                    checkbox.checked=!!le.candidate && !!le.version && !le.disabled && !isDowngrade;
+                    checkbox.disabled=!hasCandidate;
+                    checkbox.checked=hasCandidate && !!le.version && !le.disabled && !isDowngrade;
                     let selectText=document.createElement('span');
                     selectText.textContent='Select for update';
                     selectLabel.appendChild(checkbox);
@@ -110,6 +129,7 @@
                     listFrame.appendChild(item);
                 })
                 hideShowDisabled();
+                updateSelection();
                 betaStatus.className="statusText "+(betaActive?'ok':'unknown');
                 betaStatus.setAttribute('aria-label',betaActive?'Beta enabled':'Beta disabled');
                 for (let bt of (['enableBeta','disableBeta'])){
@@ -123,8 +143,18 @@
 
             })
             .catch(function(error){
+                setListState('Reading packages failed',false,true);
                 alert("unable to fetch info: "+error);
             })
+    }
+
+    let actionRunning=false;
+    let updateSelection=function(){
+        let bt=document.getElementById('updatePackages');
+        if (! bt) return;
+        let selected=document.querySelector('#infoFrame input[type=checkbox]:checked');
+        bt.setAttribute('data-disabled',selected?'false':'true');
+        buttonEnable(bt,!actionRunning);
     }
 
     let hideShowDisabled=function(){
@@ -402,10 +432,12 @@
             }
             apiRequest(url)
             .then(function(data){
+                actionRunning=!!data.actionRunning;
                 let buttons=document.querySelectorAll('button.action');
                 for (let i=0;i<buttons.length;i++){
                     buttonEnable(buttons[i],! data.actionRunning);
                 }
+                updateSelection();
                 buttonEnable('showConsole',data.actionRunning);
                 let actionDisplay=document.getElementById('runningAction');
                 if (actionDisplay){
@@ -466,6 +498,8 @@
                 console.log(error);
             })
         },1000);
+        let infoFrame=document.getElementById('infoFrame');
+        if (infoFrame) infoFrame.addEventListener('change',updateSelection);
         let sd=document.getElementById('showDisabled');
         if (sd) sd.addEventListener('change',hideShowDisabled)
         let allowDowngrade=document.getElementById('allowDowngrade')

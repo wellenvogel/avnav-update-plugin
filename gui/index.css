@@ -124,6 +124,24 @@ text {
     font-size: 0.75rem;
 }
 
+.packageDetails dd.none {
+    font-style: italic;
+    color: #7a858a;
+}
+
+.packageSelect:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.packageSelect input:disabled {
+    cursor: not-allowed;
+}
+
+.packageDetails dd.downgrade {
+    color: red;
+}
+
 .packageDetails dd {
     margin: 0.2rem 0 0;
     overflow-wrap: anywhere;
@@ -244,6 +262,26 @@ button:not(:disabled):hover {
     color: #eceff1;
 }
 
+.statusPair {
+    justify-content: flex-start;
+    gap: 1rem;
+}
+
+.pairItem {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pairItem .label {
+    margin: 0;
+}
+
+.listState {
+    font-size: 0.85em;
+    color: #546e7a;
+}
+
 #runningAction.stopped .actionName {
     display: none;
 }
@@ -252,6 +290,10 @@ button:not(:disabled):hover {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+}
+
+.listState:empty {
+    display: none;
 }
 
 .actionName {

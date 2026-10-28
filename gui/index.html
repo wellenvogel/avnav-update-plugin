@@ -26,21 +26,24 @@
       <aside class="sidebarFrame">
         <section class="controlGroup statusPanel" aria-labelledby="statusHeading">
           <h2 id="statusHeading">Status</h2>
-          <div class="row">
-            <span class="label">Internet</span>
-            <span id="networkStatus" class="statusText unknown" role="status" aria-label="Internet status"></span>
+          <div class="row statusPair">
+            <span class="pairItem">
+              <span class="label">Internet</span>
+              <span id="networkStatus" class="statusText unknown" role="status" aria-label="Internet status"></span>
+            </span>
+            <label class="pairItem" for="networkUpdate">
+              <span class="label">Auto Update</span>
+              <input type="checkbox" id="networkUpdate"/>
+            </label>
           </div>
-          <label class="row" for="networkUpdate">
-            <span class="label">Auto Update</span>
-            <input type="checkbox" id="networkUpdate"/>
-          </label>
           <div class="row">
             <span class="label">AvNav</span>
             <span class="statusText" id="avnavStatusText"></span>
           </div>
           <div class="row currentAction">
-            <span class="label">Running action</span>
+            <span class="label">Activity</span>
             <div id="runningAction" class="stopped">
+              <span id="listState" class="listState" role="status"></span>
               <span class="actionName blink"></span>
               <button id="showConsole">Console</button>
             </div>
