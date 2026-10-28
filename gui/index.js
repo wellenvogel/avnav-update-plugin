@@ -75,6 +75,7 @@
                     let item=document.createElement('li');
                     item.classList.add('packageItem');
                     if (! hasCandidate) item.classList.add('noCandidate');
+                    else item.classList.add(isDowngrade?'downgradeCandidate':'upgradeCandidate');
                     if (le.disabled){
                         item.classList.add('disabledPackage');
                         le.state="disabled";
