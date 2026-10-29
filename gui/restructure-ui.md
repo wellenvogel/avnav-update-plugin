@@ -38,12 +38,12 @@ Summary of the UI rework of the update plugin (`index.html`, `index.css`, `index
 
 - Update button is disabled when nothing is selected, and shows "Update N packages" otherwise.
 - A confirm dialog lists `name: from -> to` (downgrades in red) and notes that AvNav is stopped during the update.
-- Packages without a candidate have a disabled checkbox. Downgrade candidates are shown in red and only appear with Allow downgrade ticked.
+- Packages without a candidate have a disabled checkbox. Downgrade candidates are shown in red and only appear with Allow downgrade ticked. Checkbox labels say "Select for install" for not-installed packages, "Select for downgrade" for downgrade candidates, and "Select for update" otherwise.
 - Version line `installed -> candidate`; "up to date" or "no candidate" when there is nothing newer.
 - State labels with tooltips: Update available, Downgrade possible, Up to date, Not installed, Disabled.
 - Filter chips (Updates, All, Disabled), a search box, and a count in the heading ("2 of 12 updatable"). The old "Show disabled packages" checkbox was replaced by the chips. The chips use the same button styling as the other buttons; the active one is dark blue-grey.
 - "Updates" shows only installed packages with a newer candidate (not-installed and disabled packages are excluded); the heading count uses the same rule. Not-installed packages are listed under "All".
-- Sorting: updates first, then downgrades, up to date, disabled; each group by name.
+- Sorting: update candidates; downgrade candidates; installed packages that are up to date or have no candidate; available packages that are not installed; not-installed packages without a candidate; disabled packages. Each group is sorted by name.
 - Select all never selects packages that are not installed.
 - The Activity row shows "Reading packages...", then "Package list updated", then "List read HH:MM". This is the time the browser read the list, not the apt refresh time.
 - Toggling Allow downgrade rebuilds the list from cached data (`renderList`) without a new server request. `fetchList` only reads from the server.

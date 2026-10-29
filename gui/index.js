@@ -203,11 +203,18 @@
                     checkbox.disabled=!hasCandidate;
                     checkbox.checked=hasCandidate && !!le.version && kind !== 'disabled' && !isDowngrade;
                     let selectText=document.createElement('span');
-                    selectText.textContent='Select for update';
+                    selectText.textContent=kind === 'notinstalled'
+                        ? 'Select for install'
+                        : (isDowngrade?'Select for downgrade':'Select for update');
                     selectLabel.appendChild(checkbox);
                     selectLabel.appendChild(selectText);
                     item.appendChild(selectLabel);
-                    let rank=kind === 'disabled'?3:(hasCandidate?(isDowngrade?1:0):2);
+                    let rank;
+                    if (kind === 'disabled') rank=5;
+                    else if (!le.version) rank=hasCandidate?3:4;
+                    else if (isDowngrade) rank=1;
+                    else if (hasCandidate) rank=0;
+                    else rank=2;
                     entries.push({rank:rank,name:le.name || '',item:item});
                 })
                 entries.sort(function(a,b){
