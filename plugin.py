@@ -193,6 +193,6 @@ class Plugin(object):
           proto="http"
         else:
           proto=parts[0]
-        new_parts = (proto, hostport, '/index.html',"title=no",None)
+        new_parts = (proto, hostport, '/index.html',f"title=no&_={int(time.time())}",None)
         new_url = urllib.parse.urlunsplit(new_parts)
         handler.send_header("Location", new_url)
